@@ -1,0 +1,148 @@
+# Imago
+
+**A template for building local Claude Code agents that remember who they are. Persistent memory, functional personality, zero infrastructure.**
+
+![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg) ![Claude Code](https://img.shields.io/badge/Claude_Code-native_subagents-8B5CF6) ![Python](https://img.shields.io/badge/Python-3.10%2B_stdlib_only-3776AB) ![Dependencies](https://img.shields.io/badge/dependencies-zero-brightgreen)
+
+A Claude Code subagent is powerful and amnesiac. It reads your files, runs your tools, returns an answer — and forgets everything. Spawn it again tomorrow and it starts from nothing, re-learning what it worked out yesterday, repeating the suggestion you already rejected.
+
+Imago gives an agent the two things that turn it from a function call into a colleague: **a memory that survives sessions**, and **a personality that changes what it produces**. Both are plain markdown files. There is no runtime, no daemon, no database — the agents are native Claude Code subagents, and Imago is the convention that makes them persistent.
+
+> ### This is a template, not a library
+>
+> **Your agents never live in this repo.** They are generated into `~/.claude/`, where Claude Code reads them. This repo only ever contains templates, docs, tools, and one worked example.
+>
+> Use **"Use this template"** on GitHub rather than `git clone` — you get a repo with no shared history and no upstream remote, so your own agents can never end up in a pull request here by accident.
+
+Named after the *imago*: in entomology, the final mature form an insect becomes after all its molts — not a stage, a destination. In Jungian psychology, the persistent internal image of another person that governs how you relate to them. Both are the point: agents that mature into a stable identity instead of resetting, carrying a representation durable enough to have a character.
+
+Two sources shaped this:
+
+- **[Allie K. Miller on The Startup Ideas Podcast](https://www.youtube.com/watch?v=EzQAgnjTq2k)** (with Greg Isenberg, Aug 2026) — the case for an agent *workforce*: a fleet with named roles, personalities that are functional rather than decorative, and roles nobody would ever hire a human for because at the margin an agent costs nothing.
+- **[Hermes Agent](https://github.com/NousResearch/hermes-agent)** (Nous Research) — the memory contract: bounded local files, a tight budget as a deliberate forcing function for curation, and consolidation when the budget fills. The podcast is not explicit about how memory actually works; Hermes is.
+
+---
+
+## Philosophy
+
+Most agent-memory tooling reaches for retrieval infrastructure: vector databases, embedding pipelines, temporal knowledge graphs, hosted memory services. Imago bets the other way — **for a handful of agents holding a few dozen facts each, a directory of markdown and `grep` is not a compromise, it is the correct answer**:
+
+- **No vector DB, no embeddings, no index.** An agent's memory is small by design, because a tight budget is what forces it to curate. Nothing here needs to be searched; it needs to be *read*, whole, at the start of every session.
+- **No runtime.** Imago generates the `.md` files Claude Code already reads. Delete Imago and your agents keep working.
+- **No scheduler.** Proactivity matters — it is most of the point — but the plumbing is already native. Imago documents the contract an agent must satisfy to run unattended and leaves the cron to `/schedule`.
+- **Personality is functional or it is decoration.** "You are a quirky assistant" changes nothing. A personality is only worth writing down if it changes what the agent *notices*, what it *reports*, and above all what it *refuses to do*.
+- **The write path is enforced, not requested.** The hard problem in agent memory is not storage, it is that agents reliably read their memory and unreliably write it. Imago's templates make the write structurally unavoidable rather than politely instructed. This is the design's centre — [the full argument is here](docs/design.md).
+
+## The three axes
+
+An agent is three orthogonal things. Conflating them is the design error Imago is shaped to prevent:
+
+| | What it is | Where it lives | Nature |
+|---|---|---|---|
+| **Personality** | who the agent is | the body of its definition | per-agent, static |
+| **Memory** | what it has learned | `~/.claude/memory/<name>/` | per-agent, **stateful** |
+| **Skills** | what it can do | `~/.claude/skills/` | **shared**, stateless |
+
+Skills are identical for everyone who loads them. Memory is private and accumulates. Imago ships no skills at all — they are already a solved, documented Claude Code feature. Imago's contribution is the other two axes.
+
+## Where things live
+
+| | `imago/` (this repo) | `~/.claude/` (yours) |
+|---|---|---|
+| Contains | templates, docs, tools, one example | your agents and their memories |
+| Written by | pull requests to the template | `tools/new-agent` |
+| Public? | yes | your call, in a separate repo |
+| Contains anything of yours? | **never** | everything |
+
+`tools/new-agent` refuses to write inside this repo. If you point it here, it errors and tells you where agents actually go.
+
+## Quick start
+
+**Requirements:** [Claude Code](https://claude.com/claude-code) · Python 3.10+ · git
+
+Install the worked example and watch memory survive a session boundary. Two minutes:
+
+```bash
+# 1. Get the template — "Use this template" on GitHub, or:
+git clone https://github.com/sturlese/imago && cd imago
+
+# 2. Install the example agent into ~/.claude/
+tools/new-agent --from-example toby
+
+# 3. Open Claude Code anywhere and ask it to run Toby
+claude
+```
+
+Then, in the session:
+
+```
+Use the toby agent to look over this project's Claude Code setup.
+```
+
+Toby writes what he finds to `~/.claude/memory/toby/`. **Now quit the session and start a new one**, and ask:
+
+```
+Ask toby what he already knows about this setup.
+```
+
+He will tell you, from a file he wrote in a session that no longer exists. That round-trip is the whole thesis; everything else in this repo is in service of making it reliable.
+
+Check the fleet at any time:
+
+```bash
+tools/check
+```
+
+## Creating your own agent
+
+```bash
+tools/new-agent phoebe --memory deliverable
+```
+
+This scaffolds `~/.claude/agents/phoebe.md` from [`templates/agent.md`](templates/agent.md) and an empty memory at `~/.claude/memory/phoebe/`. Then you write the personality — the tool deliberately does not generate it, because a personality assembled from filled-in slots is exactly the decoration this repo argues against.
+
+### Personality, in four fields
+
+The template asks for four things. Vagueness in any of them produces an agent that sounds distinctive and behaves generically:
+
+| Field | The question it answers | Example (Phoebe, a 10× interrogator) |
+|---|---|---|
+| **Disposition** | What is it inclined to notice? | Gaps between what was built and what was possible |
+| **Voice** | How does it report? | Provocative; asks rather than asserts |
+| **Refusals** | What does it decline to do, in character? | **Never approves anything.** Cannot say "looks good" |
+| **Bar** | What does "good" mean to it? | A 10× answer, or the question stands |
+
+**Refusals are the field that matters and the one people skip.** A personality without a *no* is a costume. An agent whose job is to demand ambition must be forbidden from approving, or it drifts into another voice telling you nice work. Toby's refusal is that he never proposes fixes — he only reports — which is what keeps his output trustworthy and his scope small.
+
+### Memory, in one of two shapes
+
+Every agent with memory declares how the write happens. There is no third option, and in particular there is no "do your job and also update your memory at the end" — that is the shape that silently loses everything:
+
+- **`deliverable`** — the memory file *is* the output. No file, no completed task. Zero discretion, and the shape to prefer.
+- **`caller`** — the agent returns its findings and something else persists them. The agent still decides *what* is worth remembering; only the writing moves out.
+
+`tools/new-agent` will not generate an agent without one of these.
+
+### Running unattended
+
+An agent that only runs when you invoke it barely needs memory — you would remember what it told you. Memory pays off when the agent fires on a schedule and accumulates across runs you never watched. That is also where the write path gets dangerous, because nobody is there to notice a skipped one.
+
+Agents intended to run unattended declare it in an `## Operating mode` section, which is both the declaration and the instruction the model reads. The requirements are stricter than for interactive agents — [see the checklist](docs/proactivity.md).
+
+## Reference
+
+| Document | What is in it |
+|---|---|
+| [docs/design.md](docs/design.md) | Why agents read memory reliably and write it unreliably, and the two shapes that fix it |
+| [docs/memory-spec.md](docs/memory-spec.md) | The memory contract: layout, fact types, budget, consolidation |
+| [docs/proactivity.md](docs/proactivity.md) | What changes when an agent runs with nobody watching |
+| [templates/agent.md](templates/agent.md) | The agent skeleton |
+| [examples/toby.md](examples/toby.md) | A complete worked agent, commented |
+
+## Contributing
+
+Improvements to the templates, tools and docs are welcome. Pull requests should only ever touch `templates/`, `tools/`, `docs/`, `examples/` and the top-level docs — anything outside that is local work that has followed you in. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## License
+
+MIT — see [LICENSE](LICENSE).

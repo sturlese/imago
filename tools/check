@@ -1,0 +1,235 @@
+#!/usr/bin/env python3
+"""Verify an installed Imago fleet against the memory specification.
+
+Checks the agents in ~/.claude/agents/ that declare a memory section, plus their
+memories in ~/.claude/memory/. Reports what the specification can verify
+mechanically, so it does not have to be verified by remembering.
+
+    tools/check
+    tools/check toby
+    tools/check --dir /tmp/fleet
+
+Exit code 1 if there are errors, 0 otherwise. Python 3.10+, stdlib only.
+"""
+
+from __future__ import annotations
+
+import argparse
+import re
+import sys
+from pathlib import Path
+
+BUDGET = 12_000          # characters across an agent's memory directory
+THRESHOLD = 0.80         # consolidation threshold
+INDEX_MAX_LINES = 60
+FACT_TYPES = ("lesson", "pattern", "rejected", "reference")
+SHAPES = ("deliverable", "caller")
+
+FRONTMATTER_RE = re.compile(r"\A---\r?\n(.*?)\r?\n---", re.S)
+COMMENT_RE = re.compile(r"<!--.*?-->", re.S)
+INDEX_LINK_RE = re.compile(r"^\s*-\s*\[[^\]]*\]\(([^)]+\.md)\)", re.M)
+SHAPE_RE = re.compile(r"^##\s*Memory shape:\s*`?(\w+)`?", re.M)
+MODE_RE = re.compile(r"^##\s*Operating mode\s*$(.*?)(?=^##\s|\Z)", re.M | re.S)
+# An instruction to *invoke* a skill, not a mention of skill files on disk.
+SKILL_USE_RE = re.compile(r"\b(invoke|call|run|use)\b[^.\n]{0,40}\bskills?\b(?!\s*/)", re.I)
+SECRET_RE = re.compile(r"\b(sk-[A-Za-z0-9]{16,}|ghp_[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{12,}|xox[baprs]-[A-Za-z0-9-]{10,})")
+UNFINISHED = "IMAGO:UNFINISHED"
+
+findings: list[tuple[str, str, str, str]] = []
+
+
+def add(level: str, check: str, where: str, msg: str) -> None:
+    findings.append((level, check, where, msg))
+
+
+def strip_comments(text: str) -> str:
+    """Drop HTML comments before analysis.
+
+    Comments in a definition are guidance for whoever writes it — most often an
+    alternative block kept for reference, such as the `unattended` variant of the
+    operating mode. Reading them as instructions makes a linter analyse text the
+    model never sees.
+    """
+    return COMMENT_RE.sub("", text)
+
+
+def frontmatter(text: str) -> dict[str, str]:
+    m = FRONTMATTER_RE.match(text)
+    if not m:
+        return {}
+    out: dict[str, str] = {}
+    for line in m.group(1).splitlines():
+        if line.startswith((" ", "\t")) or ":" not in line:
+            continue
+        k, _, v = line.partition(":")
+        out[k.strip()] = v.strip().strip("\"'")
+    return out
+
+
+def check_fact(path: Path, rel: str) -> None:
+    text = path.read_text(encoding="utf-8", errors="replace")
+    fm = frontmatter(text)
+
+    if not fm:
+        add("error", "frontmatter", rel, "no frontmatter block")
+        return
+
+    for field in ("name", "description", "type", "created"):
+        if not fm.get(field):
+            add("error", "frontmatter", rel, f"missing required field: {field}")
+
+    if (t := fm.get("type")) and t not in FACT_TYPES:
+        add("error", "fact_type", rel, f"unknown type {t!r} (expected one of: {', '.join(FACT_TYPES)})")
+
+    if (n := fm.get("name")) and n != path.stem:
+        add("error", "naming", rel, f"name {n!r} does not match filename {path.stem!r}")
+
+    if fm.get("type") == "lesson":
+        for marker in ("**Why:**", "**How to apply:**"):
+            if marker not in text:
+                add("warn", "lesson_shape", rel, f"lesson without {marker} — a fact with no application rule is trivia")
+
+    if fm.get("type") == "rejected" and "**" not in text.split("---", 2)[-1]:
+        add("warn", "rejected_shape", rel, "rejected fact should record when it was proposed and the reason given")
+
+    if m := SECRET_RE.search(text):
+        add("error", "secret", rel, f"looks like a credential ({m.group(1)[:8]}...) — memory is replayed into every future run")
+
+
+def check_memory(memory_dir: Path, name: str) -> None:
+    rel = f"memory/{name}"
+
+    if not memory_dir.is_dir():
+        add("error", "missing_memory", rel, "agent declares memory but the directory does not exist — run new-agent, or create it")
+        return
+
+    index = memory_dir / "MEMORY.md"
+    facts = sorted(p for p in memory_dir.glob("*.md") if p.name != "MEMORY.md")
+
+    if not index.exists():
+        add("error", "missing_index", f"{rel}/MEMORY.md", "no index — facts not listed in it will not be found again")
+        listed: set[str] = set()
+    else:
+        index_text = strip_comments(index.read_text(encoding="utf-8", errors="replace"))
+        listed = {Path(t).name for t in INDEX_LINK_RE.findall(index_text)}
+        lines = [l for l in index_text.splitlines() if l.strip()]
+        if len(lines) > INDEX_MAX_LINES:
+            add("warn", "index_size", f"{rel}/MEMORY.md",
+                f"{len(lines)} lines (max {INDEX_MAX_LINES}) — consolidate rather than growing the index")
+
+    on_disk = {p.name for p in facts}
+    for orphan in sorted(on_disk - listed):
+        add("error", "index_drift", f"{rel}/{orphan}", "fact not listed in MEMORY.md — it will not be found again")
+    for dangling in sorted(listed - on_disk):
+        add("error", "index_drift", f"{rel}/MEMORY.md", f"index points at {dangling}, which does not exist")
+
+    for fact in facts:
+        check_fact(fact, f"{rel}/{fact.name}")
+
+    total = sum(p.stat().st_size for p in memory_dir.glob("*.md"))
+    pct = total / BUDGET
+    if pct >= 1.0:
+        add("error", "budget", rel, f"{total} chars, over the {BUDGET} budget — consolidate before the next run")
+    elif pct >= THRESHOLD:
+        add("warn", "budget", rel,
+            f"{total} chars, {pct:.0%} of {BUDGET} — consolidation is due (merge, delete contradicted, compress)")
+
+
+def check_agent(path: Path, memory_root: Path) -> str | None:
+    raw = path.read_text(encoding="utf-8", errors="replace")
+    if "## Memory" not in raw:
+        return None  # not an Imago agent, nothing to say about it
+
+    fm = frontmatter(raw)
+    text = strip_comments(raw)
+    name = fm.get("name") or path.stem
+    rel = f"agents/{path.name}"
+
+    if name != path.stem:
+        add("error", "naming", rel, f"frontmatter name {name!r} does not match filename {path.stem!r}")
+
+    if UNFINISHED in raw:
+        add("warn", "unfinished", rel,
+            "still carries the scaffolding marker — the personality and mandate have not been written yet")
+
+    shape_match = SHAPE_RE.search(text)
+    shape = shape_match.group(1) if shape_match else None
+    if shape is None:
+        add("error", "memory_shape", rel,
+            "no declared memory shape — add '## Memory shape: `deliverable`' or `caller` (see docs/design.md)")
+    elif shape not in SHAPES:
+        add("error", "memory_shape", rel, f"unknown memory shape {shape!r} (expected: {' or '.join(SHAPES)})")
+
+    mode_match = MODE_RE.search(text)
+    if not mode_match:
+        add("warn", "operating_mode", rel, "no '## Operating mode' section — declare interactive or unattended")
+    else:
+        body = mode_match.group(1)
+        declared = [m for m in ("unattended", "interactive") if re.search(rf"^\s*`?{m}`?", body, re.M)]
+        if not declared:
+            add("warn", "operating_mode", rel, "Operating mode section declares neither interactive nor unattended")
+        elif declared[0] == "unattended":
+            if shape is None:
+                add("error", "unattended", rel,
+                    "unattended agent with no memory shape — a silently skipped write is permanent when nobody is watching")
+            if not re.search(r"do not ask|nobody can answer|no questions", body, re.I):
+                add("warn", "unattended", rel,
+                    "unattended agent not told that nobody can answer it — a question will block the whole run")
+
+    body = text.split("---", 2)[-1]
+    if SKILL_USE_RE.search(body) and (tools := fm.get("tools")) and "Skill" not in tools:
+        add("warn", "tools", rel,
+            "body tells the agent to use a skill but 'Skill' is not in its tools list — it cannot invoke any")
+
+    check_memory(memory_root / name, name)
+    return name
+
+
+def main() -> int:
+    p = argparse.ArgumentParser(prog="check", description="Verify an installed Imago fleet.")
+    p.add_argument("agent", nargs="*", help="only check these agents (default: all)")
+    p.add_argument("--dir", help="fleet root instead of ~/.claude")
+    args = p.parse_args()
+
+    root = Path(args.dir).expanduser() if args.dir else Path.home() / ".claude"
+    agents_dir = root / "agents"
+    memory_root = root / "memory"
+
+    if not agents_dir.is_dir():
+        print(f"no agents directory at {agents_dir}", file=sys.stderr)
+        print("Nothing installed yet. Try: tools/new-agent --from-example toby", file=sys.stderr)
+        return 1
+
+    paths = sorted(agents_dir.glob("*.md"))
+    if args.agent:
+        wanted = set(args.agent)
+        paths = [p for p in paths if p.stem in wanted]
+        if missing := wanted - {p.stem for p in paths}:
+            print(f"no such agent: {', '.join(sorted(missing))}", file=sys.stderr)
+            return 1
+
+    checked = [n for n in (check_agent(p, memory_root) for p in paths) if n]
+
+    if not checked:
+        print(f"no Imago agents found in {agents_dir}")
+        print("An Imago agent has a '## Memory' section. Try: tools/new-agent --from-example toby")
+        return 0
+
+    errors = sum(1 for f in findings if f[0] == "error")
+    warns = len(findings) - errors
+
+    print(f"Checked {len(checked)} agent{'s' if len(checked) != 1 else ''} "
+          f"({', '.join(checked)}): {errors} error{'s' if errors != 1 else ''}, "
+          f"{warns} warning{'s' if warns != 1 else ''}")
+
+    if findings:
+        print()
+        width = max(len(f[1]) for f in findings)
+        for level, check, where, msg in sorted(findings, key=lambda f: (f[0] != "error", f[2])):
+            print(f"[{level.upper():5}] {check:{width}}  {where}: {msg}")
+
+    return 1 if errors else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

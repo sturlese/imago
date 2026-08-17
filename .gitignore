@@ -1,0 +1,20 @@
+# Defensive: agents and their memories NEVER belong in this repo.
+# These directories should not exist here — if a tool or a hand-edit ever
+# creates them, git must not see them. See CONTRIBUTING.md.
+agents/
+memory/
+*.local.*
+*.local
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/

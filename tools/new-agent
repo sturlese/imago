@@ -1,0 +1,161 @@
+#!/usr/bin/env python3
+"""Scaffold an Imago agent into ~/.claude/.
+
+Agents never live in this repo. This script writes the definition to
+~/.claude/agents/<name>.md and an empty memory to ~/.claude/memory/<name>/,
+and refuses to write anywhere inside the template checkout.
+
+    tools/new-agent phoebe --memory deliverable
+    tools/new-agent --from-example toby
+
+Python 3.10+, standard library only.
+"""
+
+from __future__ import annotations
+
+import argparse
+import datetime as dt
+import re
+import sys
+from pathlib import Path
+
+REPO = Path(__file__).resolve().parent.parent
+TEMPLATES = REPO / "templates"
+EXAMPLES = REPO / "examples"
+
+NAME_RE = re.compile(r"^[a-z][a-z0-9-]{1,38}[a-z0-9]$")
+SHAPES = ("deliverable", "caller")
+
+
+def fail(msg: str, *hint: str) -> None:
+    print(f"error: {msg}", file=sys.stderr)
+    for line in hint:
+        print(f"       {line}", file=sys.stderr)
+    raise SystemExit(1)
+
+
+def guard_not_in_repo(target: Path) -> None:
+    """Refuse to scaffold inside the template checkout.
+
+    This is the mechanical half of keeping your agents out of a pull request to
+    the template. The other half is using "Use this template" on GitHub rather
+    than cloning, so there is no upstream to open one against.
+    """
+    try:
+        target.resolve().relative_to(REPO)
+    except ValueError:
+        return  # outside the repo, which is what we want
+    fail(
+        f"refusing to write inside the Imago template ({REPO})",
+        "Your agents belong in ~/.claude/, not in this repo — see the",
+        "'Where things live' table in README.md. Drop --dir to use the default.",
+    )
+
+
+def resolve_roots(dir_opt: str | None) -> tuple[Path, Path]:
+    root = Path(dir_opt).expanduser() if dir_opt else Path.home() / ".claude"
+    guard_not_in_repo(root)
+    return root / "agents", root / "memory"
+
+
+def render(text: str, name: str, shape: str) -> str:
+    return (
+        text.replace("{{NAME}}", name)
+        .replace("{{MEMORY_SHAPE}}", shape)
+        .replace("{{SLUG}}", name)
+        .replace("{{DATE}}", dt.date.today().isoformat())
+    )
+
+
+def write_memory(memory_dir: Path, name: str) -> Path:
+    memory_dir.mkdir(parents=True, exist_ok=True)
+    index = memory_dir / "MEMORY.md"
+    if not index.exists():
+        index.write_text(
+            render((TEMPLATES / "MEMORY.md").read_text(encoding="utf-8"), name, ""),
+            encoding="utf-8",
+        )
+    return index
+
+
+def main() -> int:
+    p = argparse.ArgumentParser(
+        prog="new-agent",
+        description="Scaffold an Imago agent into ~/.claude/.",
+    )
+    p.add_argument("name", nargs="?", help="agent name (lowercase, hyphens)")
+    p.add_argument(
+        "--memory",
+        choices=SHAPES,
+        help="how the memory write happens; required unless --from-example",
+    )
+    p.add_argument(
+        "--from-example",
+        metavar="NAME",
+        help=f"install a worked example from {EXAMPLES.name}/ instead of a blank template",
+    )
+    p.add_argument("--dir", help="target root instead of ~/.claude (for testing)")
+    p.add_argument("--force", action="store_true", help="overwrite an existing definition")
+    args = p.parse_args()
+
+    if args.from_example:
+        name = args.name or args.from_example
+        source = EXAMPLES / f"{args.from_example}.md"
+        if not source.exists():
+            available = ", ".join(sorted(f.stem for f in EXAMPLES.glob("*.md"))) or "none"
+            fail(f"no example named '{args.from_example}'", f"available: {available}")
+        body = source.read_text(encoding="utf-8")
+    else:
+        if not args.name:
+            fail("a name is required", "usage: new-agent <name> --memory deliverable|caller")
+        name = args.name
+        if not args.memory:
+            fail(
+                "--memory is required",
+                "Every agent with memory declares how the write happens:",
+                "  deliverable  the memory file IS the output (prefer this)",
+                "  caller       the agent returns findings, something else persists them",
+                "There is deliberately no third option — see docs/design.md.",
+            )
+        body = render(
+            (TEMPLATES / "agent.md").read_text(encoding="utf-8"), name, args.memory
+        )
+
+    if not NAME_RE.match(name):
+        fail(
+            f"invalid agent name '{name}'",
+            "Use lowercase letters, digits and hyphens, 3-40 characters,",
+            "starting with a letter. This becomes the filename and the",
+            "identifier you call the agent by.",
+        )
+
+    agents_dir, memory_root = resolve_roots(args.dir)
+    definition = agents_dir / f"{name}.md"
+
+    if definition.exists() and not args.force:
+        fail(
+            f"{definition} already exists",
+            "Pass --force to overwrite it. Its memory is left untouched either way.",
+        )
+
+    agents_dir.mkdir(parents=True, exist_ok=True)
+    definition.write_text(body, encoding="utf-8")
+    index = write_memory(memory_root / name, name)
+
+    print(f"definition  {definition}")
+    print(f"memory      {index.parent}/")
+    print()
+    if args.from_example:
+        print(f"Installed the '{args.from_example}' example. Open a Claude Code session and ask")
+        print(f"it to use the {name} agent, then start a new session and ask what it remembers.")
+    else:
+        print("Now write the personality — four fields in the definition: disposition,")
+        print("voice, refusals, bar. Refusals is the one that matters; see README.md.")
+        print(f"Worked example: {EXAMPLES.relative_to(REPO)}/toby.md")
+    print()
+    print("Verify with: tools/check")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
