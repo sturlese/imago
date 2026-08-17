@@ -30,7 +30,7 @@ An agent cannot write here unless the run grants it — `--add-dir ~/.imago --al
 # Memory — toby
 
 - [Skill lint fails on periods in page names](lint-period-wikilinks.md) — the vault linter reads a `.` in a wikilink as an attachment path
-- [Marc rejects per-agent vaults](rejected-vault-per-agent.md) — proposed 2026-08-17, turned down as overkill
+- [Per-agent vaults rejected](rejected-vault-per-agent.md) — proposed 2026-08-17, turned down as overkill
 ```
 
 Format: `- [Title](filename.md) — one-line hook`. The hook exists so the agent can rule a fact out without opening it.
