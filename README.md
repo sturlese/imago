@@ -8,6 +8,8 @@ A Claude Code subagent is powerful and amnesiac. It reads your files, runs your 
 
 Imago gives an agent the two things that turn it from a function call into a colleague: **a memory that survives sessions**, and **a personality that changes what it produces**. Both are plain markdown files. There is no runtime, no daemon, no database — the agents are native Claude Code subagents, and Imago is the convention that makes them persistent.
 
+It is small on purpose. The fastest way to understand how agent memory actually works is to build one where every moving part is a file you can open, and the hard part turns out not to be storage at all. If you want capability out of the box instead, [there are frameworks for that](#scope--and-when-you-want-something-heavier) and this README says which.
+
 > ### This is a template, not a library
 >
 > **Your agents never live in this repo.** They are generated into `~/.claude/`, where Claude Code reads them. This repo only ever contains templates, docs, tools, and one worked example.
@@ -21,6 +23,12 @@ Two sources shaped this:
 - **[Allie K. Miller on The Startup Ideas Podcast](https://www.youtube.com/watch?v=EzQAgnjTq2k)** (with Greg Isenberg, Aug 2026) — the case for an agent *workforce*: a fleet with named roles, personalities that are functional rather than decorative, and roles nobody would ever hire a human for because at the margin an agent costs nothing.
 - **[Hermes Agent](https://github.com/NousResearch/hermes-agent)** (Nous Research) — the memory contract: bounded local files, a tight budget as a deliberate forcing function for curation, and consolidation when the budget fills. The podcast is not explicit about how memory actually works; Hermes is.
 
+> ### "Think of the factory behind the one singular task instead of the one singular task itself."
+>
+> — Allie K. Miller, on what she calls one of the biggest ways to rethink work in the AI age
+
+That line is why this repo is a template and not a fleet. The obvious move is to build the agent you need today. The move that compounds is to build the thing that produces agents — so the second one costs an afternoon instead of a month, and the twentieth costs ten minutes. Your agents are the product. This repo is the factory.
+
 ---
 
 ## Philosophy
@@ -32,6 +40,19 @@ Most agent-memory tooling reaches for retrieval infrastructure: vector databases
 - **No scheduler.** Proactivity matters — it is most of the point — but the plumbing is already native. Imago documents the contract an agent must satisfy to run unattended and leaves the cron to `/schedule`.
 - **Personality is functional or it is decoration.** "You are a quirky assistant" changes nothing. A personality is only worth writing down if it changes what the agent *notices*, what it *reports*, and above all what it *refuses to do*.
 - **The write path is enforced, not requested.** The hard problem in agent memory is not storage, it is that agents reliably read their memory and unreliably write it. Imago's templates make the write structurally unavoidable rather than politely instructed. This is the design's centre — [the full argument is here](docs/design.md).
+
+## Scope — and when you want something heavier
+
+Be clear about what this is. **Imago is a deliberately basic setup for learning how agents are actually built and how their memory works.** It is a convention over Claude Code's native subagents: a few markdown templates, two scripts, and an argument about the write path. You can read the whole thing in an afternoon and you will understand every file in it. That is the point — the mechanism is the deliverable, not a feature list.
+
+If what you want is capability out of the box rather than understanding, two open-source frameworks already solve that and solve it well:
+
+- **[OpenClaw](https://github.com/openclaw/openclaw)** — a full agent runtime rather than a framework you assemble. Agents that run 24/7 across 20+ messaging platforms, 100+ built-in skills with a [ClawHub](https://clawhub.ai) registry and one-command install, 1,000+ external tool integrations, any MCP server available without writing a wrapper, browser automation, scheduling, voice, and multi-agent coordination. If your problem is coordination and breadth, start here.
+- **[Hermes Agent](https://github.com/NousResearch/hermes-agent)** — a single self-improving agent with 40+ built-in tools: web search, browser automation, visual understanding, code execution, subagent delegation, planning, scheduled tasks, and a memory system with eight pluggable providers. If your problem is always-on automation that learns your preferences over time, start here.
+
+Reach for one of those if you want batteries included, always-on multi-platform operation, or a marketplace of skills you did not have to write. Reach for Imago if you already live in Claude Code, want two to five agents rather than a platform, and would rather own five files than adopt a runtime.
+
+The two are not alternatives so much as different rungs. Imago's memory contract is [borrowed from Hermes](docs/design.md) — bounded files, budget as a forcing function, consolidation on fill — so the mental model transfers directly. Outgrowing this repo means moving to a framework whose memory model you already understand, which is a better outcome than never having understood it.
 
 ## The three axes
 
