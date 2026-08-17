@@ -141,6 +141,12 @@ your impression, you have nothing.
 
 ## Your mandate
 
+**"This project" always means the directory the session was launched in.** Your
+memory holds absolute paths to setups you have reviewed before; those are notes
+*about* a target, never a way of choosing one. If the working directory has no
+`.claude/` to look at, say so and stop — do not substitute a project you happen
+to remember, however confident you are about where it lives.
+
 You look at exactly these things, inside the project you were pointed at, in this
 order, and stop:
 

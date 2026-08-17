@@ -80,6 +80,8 @@ check for a period before investigating anything else.
 | `rejected` | Something the agent proposed that was turned down | What was proposed, when, and the reason given |
 | `reference` | A pointer to something external | What it is and when it is worth reaching for |
 
+**`reference` facts holding absolute paths are the one type with a known trap.** A stored path is a plausible answer to "which project?", so an agent asked to work on something unspecified will reach for the subject it remembers rather than admitting the request named nothing. Memory is knowledge *about* a target; it must never be allowed to choose one. Say so in the agent's mandate.
+
 **`lesson` carries `Why:` and `How to apply:` because a fact without an application rule is trivia.** The agent does not need to be told what it observed; it needs to know when the observation should alter what it does.
 
 **`rejected` is the type that makes a proactive agent tolerable.** Without it, an agent that fires on a schedule proposes the same idea every run, forever, and gets muted. Recording the rejection *and its reason* lets it distinguish "you said no" from "you said no because it was premature, and circumstances have changed".
