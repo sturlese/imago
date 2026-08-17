@@ -1,12 +1,17 @@
 #!/usr/bin/env python3
-"""Scaffold an Imago agent into ~/.claude/.
+"""Scaffold an Imago agent.
 
-Agents never live in this repo. This script writes the definition to
-~/.claude/agents/<name>.md and an empty memory to ~/.claude/memory/<name>/,
-and refuses to write anywhere inside the template checkout.
+Agents never live in this repo. The definition goes to ~/.claude/agents/, where
+Claude Code looks for it; the memory goes to ~/.imago/, which is deliberately a
+separate tree — see the note on least privilege below. This script refuses to
+write anywhere inside the template checkout.
 
     tools/new-agent phoebe --memory deliverable
     tools/new-agent --from-example toby
+
+Why memory is not under ~/.claude: an agent can only write to a directory it has
+been granted, and granting ~/.claude would hand it its own configuration, every
+other agent's definition, and your settings. ~/.imago is a narrow grant.
 
 Python 3.10+, standard library only.
 """
@@ -47,15 +52,18 @@ def guard_not_in_repo(target: Path) -> None:
         return  # outside the repo, which is what we want
     fail(
         f"refusing to write inside the Imago template ({REPO})",
-        "Your agents belong in ~/.claude/, not in this repo — see the",
-        "'Where things live' table in README.md. Drop --dir to use the default.",
+        "Definitions belong in ~/.claude/agents/ and memories in ~/.imago/, never",
+        "in this repo — see the 'Where things live' table in README.md. Drop",
+        "--agents-dir and --memory-dir to use the defaults.",
     )
 
 
-def resolve_roots(dir_opt: str | None) -> tuple[Path, Path]:
-    root = Path(dir_opt).expanduser() if dir_opt else Path.home() / ".claude"
-    guard_not_in_repo(root)
-    return root / "agents", root / "memory"
+def resolve_roots(agents_opt: str | None, memory_opt: str | None) -> tuple[Path, Path]:
+    agents = Path(agents_opt).expanduser() if agents_opt else Path.home() / ".claude" / "agents"
+    memory = Path(memory_opt).expanduser() if memory_opt else Path.home() / ".imago"
+    guard_not_in_repo(agents)
+    guard_not_in_repo(memory)
+    return agents, memory
 
 
 def render(text: str, name: str, shape: str) -> str:
@@ -94,7 +102,8 @@ def main() -> int:
         metavar="NAME",
         help=f"install a worked example from {EXAMPLES.name}/ instead of a blank template",
     )
-    p.add_argument("--dir", help="target root instead of ~/.claude (for testing)")
+    p.add_argument("--agents-dir", help="where the definition goes (default: ~/.claude/agents)")
+    p.add_argument("--memory-dir", help="where the memory goes (default: ~/.imago)")
     p.add_argument("--force", action="store_true", help="overwrite an existing definition")
     args = p.parse_args()
 
@@ -129,7 +138,7 @@ def main() -> int:
             "identifier you call the agent by.",
         )
 
-    agents_dir, memory_root = resolve_roots(args.dir)
+    agents_dir, memory_root = resolve_roots(args.agents_dir, args.memory_dir)
     definition = agents_dir / f"{name}.md"
 
     if definition.exists() and not args.force:
@@ -142,16 +151,30 @@ def main() -> int:
     definition.write_text(body, encoding="utf-8")
     index = write_memory(memory_root / name, name)
 
+    memory_dir = index.parent
     print(f"definition  {definition}")
-    print(f"memory      {index.parent}/")
+    print(f"memory      {memory_dir}/")
     print()
-    if args.from_example:
-        print(f"Installed the '{args.from_example}' example. Open a Claude Code session and ask")
-        print(f"it to use the {name} agent, then start a new session and ask what it remembers.")
-    else:
+
+    if not args.from_example:
         print("Now write the personality — four fields in the definition: disposition,")
         print("voice, refusals, bar. Refusals is the one that matters; see README.md.")
         print(f"Worked example: {EXAMPLES.relative_to(REPO)}/toby.md")
+        print()
+
+    home = str(Path.home())
+    shown = str(memory_dir.parent).replace(home, "~", 1)
+    print("Run it as its own session (the form that also works from cron):")
+    print()
+    print(f'  echo "<task>" | claude -p --agent {name} \\')
+    print(f"      --allowedTools Write Edit --add-dir {shown}")
+    print()
+    print("The prompt goes through stdin because --allowedTools and --add-dir are")
+    print("variadic and would otherwise swallow a trailing prompt argument. Without")
+    print(f"those two flags the agent cannot write to {shown} and the run records nothing.")
+    print()
+    print("Or from inside a session: open Claude Code and ask it to use the")
+    print(f"{name} agent. Convenient, but session hooks do not fire for a subagent.")
     print()
     print("Verify with: tools/check")
     return 0

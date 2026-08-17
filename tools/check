@@ -2,12 +2,12 @@
 """Verify an installed Imago fleet against the memory specification.
 
 Checks the agents in ~/.claude/agents/ that declare a memory section, plus their
-memories in ~/.claude/memory/. Reports what the specification can verify
-mechanically, so it does not have to be verified by remembering.
+memories in ~/.imago/. Reports what the specification can verify mechanically, so
+it does not have to be verified by remembering.
 
     tools/check
     tools/check toby
-    tools/check --dir /tmp/fleet
+    tools/check --agents-dir /tmp/agents --memory-dir /tmp/memory
 
 Exit code 1 if there are errors, 0 otherwise. Python 3.10+, stdlib only.
 """
@@ -100,7 +100,8 @@ def check_memory(memory_dir: Path, name: str) -> None:
     rel = f"memory/{name}"
 
     if not memory_dir.is_dir():
-        add("error", "missing_memory", rel, "agent declares memory but the directory does not exist — run new-agent, or create it")
+        add("error", "missing_memory", rel,
+            f"agent declares memory but {memory_dir} does not exist — run new-agent, or create it")
         return
 
     index = memory_dir / "MEMORY.md"
@@ -188,12 +189,14 @@ def check_agent(path: Path, memory_root: Path) -> str | None:
 def main() -> int:
     p = argparse.ArgumentParser(prog="check", description="Verify an installed Imago fleet.")
     p.add_argument("agent", nargs="*", help="only check these agents (default: all)")
-    p.add_argument("--dir", help="fleet root instead of ~/.claude")
+    p.add_argument("--agents-dir", help="where definitions live (default: ~/.claude/agents)")
+    p.add_argument("--memory-dir", help="where memories live (default: ~/.imago)")
     args = p.parse_args()
 
-    root = Path(args.dir).expanduser() if args.dir else Path.home() / ".claude"
-    agents_dir = root / "agents"
-    memory_root = root / "memory"
+    agents_dir = (Path(args.agents_dir).expanduser() if args.agents_dir
+                  else Path.home() / ".claude" / "agents")
+    memory_root = (Path(args.memory_dir).expanduser() if args.memory_dir
+                   else Path.home() / ".imago")
 
     if not agents_dir.is_dir():
         print(f"no agents directory at {agents_dir}", file=sys.stderr)

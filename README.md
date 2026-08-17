@@ -61,21 +61,24 @@ An agent is three orthogonal things. Conflating them is the design error Imago i
 | | What it is | Where it lives | Nature |
 |---|---|---|---|
 | **Personality** | who the agent is | the body of its definition | per-agent, static |
-| **Memory** | what it has learned | `~/.claude/memory/<name>/` | per-agent, **stateful** |
+| **Memory** | what it has learned | `~/.imago/<name>/` | per-agent, **stateful** |
 | **Skills** | what it can do | `~/.claude/skills/` | **shared**, stateless |
 
 Skills are identical for everyone who loads them. Memory is private and accumulates. Imago ships no skills at all — they are already a solved, documented Claude Code feature. Imago's contribution is the other two axes.
 
 ## Where things live
 
-| | `imago/` (this repo) | `~/.claude/` (yours) |
-|---|---|---|
-| Contains | templates, docs, tools, one example | your agents and their memories |
-| Written by | pull requests to the template | `tools/new-agent` |
-| Public? | yes | your call, in a separate repo |
-| Contains anything of yours? | **never** | everything |
+| | `imago/` (this repo) | `~/.claude/agents/` | `~/.imago/` |
+|---|---|---|---|
+| Contains | templates, docs, tools, one example | your agent definitions | your agents' memories |
+| Written by | pull requests to the template | `tools/new-agent` | the agents themselves |
+| Owned by | the template | Claude Code | your fleet |
+| Public? | yes | your call, in a separate repo | your call |
+| Contains anything of yours? | **never** | everything | everything |
 
 `tools/new-agent` refuses to write inside this repo. If you point it here, it errors and tells you where agents actually go.
+
+Definitions and memories live in **separate trees** deliberately. Definitions have to be in `~/.claude/agents/` because that is where Claude Code looks. Memory is elsewhere because an agent can only write where it has been granted, and granting `~/.claude` would hand it its own configuration, every other agent's definition, and your settings. `~/.imago` is the narrow grant.
 
 ## Quick start
 
@@ -87,26 +90,23 @@ Install the worked example and watch memory survive a session boundary. Two minu
 # 1. Get the template — "Use this template" on GitHub, or:
 git clone https://github.com/sturlese/imago && cd imago
 
-# 2. Install the example agent into ~/.claude/
+# 2. Install the example agent
 tools/new-agent --from-example toby
 
-# 3. Open Claude Code anywhere and ask it to run Toby
-claude
+# 3. Open a session that *is* Toby, and talk to him
+cd ~/some/project
+claude --agent toby --add-dir ~/.imago
 ```
 
-Then, in the session:
+You are now in a conversation with Toby rather than with Claude Code. Ask him to review the project, push back on what he found, ask for more detail — it is an ordinary interactive session, except the persona, the mandate and the memory are his. Approve the writes when prompted; that is him recording what he found.
 
-```
-Use the toby agent to look over this project's Claude Code setup.
-```
+**Then quit, and start him again** — a completely separate session, sharing nothing but a directory:
 
-Toby writes what he finds to `~/.claude/memory/toby/`. **Now quit the session and start a new one**, and ask:
-
-```
-Ask toby what he already knows about this setup.
+```bash
+claude --agent toby --add-dir ~/.imago
 ```
 
-He will tell you, from a file he wrote in a session that no longer exists. That round-trip is the whole thesis; everything else in this repo is in service of making it reliable.
+Ask him what he already knows about the project. He will tell you, from a file he wrote in a session that no longer exists. That round-trip is the whole thesis; everything else in this repo is in service of making it reliable.
 
 Check the fleet at any time:
 
@@ -114,13 +114,25 @@ Check the fleet at any time:
 tools/check
 ```
 
+### The same agent, three ways to run it
+
+| | Command | Use it for |
+|---|---|---|
+| **Interactive, as the agent** | `claude --agent toby --add-dir ~/.imago` | Working *with* the agent — back and forth, as long as you like. The session is Toby |
+| **Non-interactive, as the agent** | `echo "..." \| claude -p --agent toby --allowedTools Write Edit --add-dir ~/.imago` | Cron, CI, anything scheduled. One shot, prints, exits |
+| **As a subagent** | Open `claude`, then: *"use the toby agent to review this"* | A quick delegated errand inside work you are already doing |
+
+The first two are the agent; the third is an errand the orchestrator runs. Only the first two get session hooks, and only the second can be scheduled.
+
+> **In the `-p` form the two flags are not optional.** Writes outside the working directory are denied by default, and under `-p` there is nobody to approve them — so without `--add-dir ~/.imago --allowedTools Write Edit` the agent runs, reports, and records nothing. The prompt also has to go through **stdin**, because both flags are variadic and would otherwise swallow a trailing prompt argument. This is the most common way an Imago agent silently accomplishes nothing — [full explanation](docs/proactivity.md).
+
 ## Creating your own agent
 
 ```bash
 tools/new-agent phoebe --memory deliverable
 ```
 
-This scaffolds `~/.claude/agents/phoebe.md` from [`templates/agent.md`](templates/agent.md) and an empty memory at `~/.claude/memory/phoebe/`. Then you write the personality — the tool deliberately does not generate it, because a personality assembled from filled-in slots is exactly the decoration this repo argues against.
+This scaffolds `~/.claude/agents/phoebe.md` from [`templates/agent.md`](templates/agent.md), an empty memory at `~/.imago/phoebe/`, and prints the command to run it. Then you write the personality — the tool deliberately does not generate it, because a personality assembled from filled-in slots is exactly the decoration this repo argues against.
 
 ### Personality, in four fields
 

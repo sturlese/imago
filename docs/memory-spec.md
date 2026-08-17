@@ -6,15 +6,21 @@ Normative. This is the contract an Imago agent's memory satisfies, and what `too
 
 ```
 ~/.claude/agents/<name>.md          the agent definition (Claude Code reads this)
-~/.claude/memory/<name>/            the agent's memory
+~/.imago/<name>/                    the agent's memory
 ├── MEMORY.md                       index — one line per fact
 ├── <fact-slug>.md                  one fact per file
 └── ...
 ```
 
+Two trees, on purpose. Definitions have to live in `~/.claude/agents/` because that is where Claude Code looks for them. Memory lives elsewhere because an agent can only write to a directory it has been granted, and **granting `~/.claude` would hand it its own configuration, every other agent's definition, and your settings**. `~/.imago` is a narrow grant that gives it exactly what it needs.
+
+The split has a second benefit: the harness owns one tree and the agent owns the other, so clearing or reinstalling Claude Code does not take the fleet's accumulated memory with it.
+
 One directory per agent. Never shared between agents: two agents writing the same directory reintroduces every concurrency problem this design avoids, and their working state genuinely differs even when their knowledge overlaps.
 
-Memory directories live under `~/.claude/`, never inside a checkout of this template.
+Neither tree is ever inside a checkout of this template.
+
+An agent cannot write here unless the run grants it — `--add-dir ~/.imago --allowedTools Write Edit`, see [proactivity.md](proactivity.md). A memory that never gets written is the most common failure of an otherwise correct agent.
 
 ## The index
 

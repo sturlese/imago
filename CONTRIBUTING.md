@@ -41,12 +41,13 @@ Concretely:
 There is no test suite. Scaffold into a scratch directory and check it:
 
 ```bash
-tools/new-agent scratch-agent --memory deliverable --dir /tmp/imago-test
-tools/check --dir /tmp/imago-test
+tools/new-agent scratch-agent --memory deliverable \
+    --agents-dir /tmp/imago-test/agents --memory-dir /tmp/imago-test/memory
+tools/check --agents-dir /tmp/imago-test/agents --memory-dir /tmp/imago-test/memory
 ```
 
-`--dir` exists for this. Note that `new-agent` refuses to write anywhere inside
-the repo, so a scratch fleet has to live outside it.
+Those two flags exist for this. Note that `new-agent` refuses to write anywhere
+inside the repo, so a scratch fleet has to live outside it.
 
 Before opening a pull request, confirm the quick start in the README still works
 end to end — install the example, run it, and verify memory survives a session

@@ -2,7 +2,37 @@
 
 An agent that only runs when you summon it barely needs memory — you would remember what it told you. Memory earns its keep when the agent fires on a schedule and accumulates across runs nobody watched.
 
-Imago does not ship a scheduler. Claude Code has one: `/schedule` creates cloud agents on a cron cadence, and `/loop` handles recurring work inside a session. What Imago provides is the **contract an agent must satisfy before it is safe to schedule**, because unattended agents fail differently from interactive ones.
+Imago does not ship a scheduler. It provides the **contract an agent must satisfy before it is safe to schedule**, because unattended agents fail differently from interactive ones — and the launch command, which is less obvious than it looks.
+
+## Three ways to run an agent, and only one of them schedules
+
+**As a subagent.** Open Claude Code and ask the session to use the agent by name. The main session dispatches it, the agent returns its result, and the session carries on — the orchestrator stays in charge and the agent is an errand it ran. Convenient, but there is no way to invoke this from cron, and **session hooks do not fire for a subagent**, so nothing mechanical can verify it wrote anything.
+
+**As an interactive session.** `claude --agent <name> --add-dir ~/.imago` starts an ordinary interactive session that *is* the agent: you talk to Toby, he answers as Toby, and you can go back and forth for as long as you like. This is the mode that feels like working with a colleague rather than dispatching a function, and it is the best way to develop a personality — you find out immediately whether the refusals hold under pressure. Writes are approved through the normal permission prompt, which is fine when you are sitting there.
+
+**As a non-interactive session.** The same thing with `-p`: one shot, prints, exits. This is the form that schedules, and — like the interactive form — the one where the `Stop` hook fires, which is what makes mechanical enforcement of the memory write possible at all ([design.md](design.md)).
+
+```bash
+echo "Review this project's Claude Code setup." | \
+  claude -p --agent toby --allowedTools Write Edit --add-dir ~/.imago
+```
+
+Every part of that line is load-bearing:
+
+- **`-p`** runs non-interactively and prints the result — required for anything scheduled.
+- **`--add-dir ~/.imago`** grants access to the memory directory. **Writes outside the working directory are denied by default**, so without this the agent cannot write its memory. This is the single most common way an Imago agent silently accomplishes nothing.
+- **`--allowedTools Write Edit`** grants the write itself. `--add-dir` opens the directory; this opens the tools. In interactive mode you would be prompted and could approve; under `-p` there is nobody to ask, so an ungranted write is simply denied.
+- **The prompt goes through stdin.** `--add-dir` and `--allowedTools` are variadic — a prompt written as a trailing argument gets swallowed as another value for whichever flag came last, and the command fails with "Input must be provided either through stdin or as a prompt argument".
+
+`--bg` starts it in the background instead, and `claude agents` manages background sessions.
+
+Once that command works from your shell, any scheduler drives it: cron, launchd, a CI job, or Claude Code's own scheduling. Imago has no opinion about which, and deliberately wraps none of them — a wrapper here would date badly and would turn a convention into an orchestrator.
+
+## Grant the narrowest thing that works
+
+`--add-dir ~/.imago` grants exactly the memory tree. Resist the temptation to grant `~/.claude` instead so that memory can live beside the definitions: that hands the agent its own configuration, every other agent's definition, and your settings. Least privilege is the reason memory lives in a separate tree at all.
+
+If an agent's mandate genuinely requires reading elsewhere, grant that directory explicitly too, and have the agent **say when a read was denied**. A run that quietly skipped half its mandate is indistinguishable from a run that found nothing.
 
 ## Memory and proactivity are two halves of one design
 
@@ -53,7 +83,7 @@ Imago adds no frontmatter field for this. The declaration goes in the body of th
 
 `unattended` — Nobody is watching and nobody can answer you. Do not ask
 questions; for minor decisions choose and record the choice. Your run has
-produced nothing until you have written to `~/.claude/memory/toby/`. Before
+produced nothing until you have written to `~/.imago/toby/`. Before
 ending your turn, confirm that you have.
 ```
 

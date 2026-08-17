@@ -19,7 +19,9 @@ The short version: **reading is enforced by output quality; writing is enforced 
 
 Three things compound it. The model's felt goal — answer the question, complete the task — is already satisfied by the time the write is due, so the write is housekeeping *after* the reward. Long tasks end near the budget edge, and the last thing instructed is the first thing dropped. And the cost of skipping lands in a *future* session, so nothing in the current loop notices.
 
-There is also a mechanical gap. Claude Code hooks are **session-scoped** — `Stop` fires when the session ends, not when a subagent finishes. So there is no hook that can check whether a subagent wrote its memory. It is an instruction that nothing verifies, and an instruction nothing verifies carries no weight.
+There is also a mechanical gap, and it depends on how the agent was launched. Claude Code hooks are **session-scoped**: `Stop` fires when the session ends, not when a subagent finishes. So when an agent runs as a *subagent* — dispatched from a session by name — there is no hook that can check whether it wrote its memory. It is an instruction that nothing verifies, and an instruction nothing verifies carries no weight.
+
+When the agent runs as the session itself (`claude --agent <name>`, see [proactivity.md](proactivity.md)), that gap closes: the `Stop` hook does fire, so the write *can* be verified mechanically and the stop blocked until it happens. That is the strongest enforcement available and it costs one shell script. It only applies to session-level agents, which is another reason to prefer that launch mode for anything scheduled.
 
 ## The principle
 
@@ -42,6 +44,17 @@ Prefer this shape. It needs no supporting machinery and it cannot silently half-
 The agent returns its findings as its output, and the caller — a script, a scheduled job, the orchestrating session — writes them to the memory directory. The write now lives in code, where it either happens or raises.
 
 Note what does *not* move: the agent still decides what is worth remembering, how to phrase it, and what supersedes what. Only the mechanical act of writing moves out. Deterministic code should seed context and carry out mechanical steps; it should never replace the model's judgement about content.
+
+### A third option, when the agent is the session
+
+If the agent runs as its own session, a `Stop` hook can check that the memory
+directory changed and refuse to let the session end until it did. This is
+enforcement in the harness rather than in the prompt, which beats both shapes
+above — a hook does not have a bad day.
+
+It does not replace them: a subagent gets no such hook, and a hook that blocks
+cannot itself decide *what* was worth writing. Treat it as a backstop under
+`deliverable`, not as a substitute for it.
 
 ### The shape that is not allowed
 
