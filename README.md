@@ -12,7 +12,7 @@ It is small on purpose. The fastest way to understand how agent memory actually 
 
 > ### This is a template, not a library
 >
-> **Your agents never live in this repo.** They are generated into `~/.claude/`, where Claude Code reads them. This repo only ever contains templates, docs, tools, and one worked example.
+> **Your agents never live in this repo.** Definitions are generated into `~/.claude/agents/`, where Claude Code reads them, and their memories into `~/.imago/`. This repo only ever contains templates, docs, tools, and one worked example.
 >
 > Use **"Use this template"** on GitHub rather than `git clone` — you get a repo with no shared history and no upstream remote, so your own agents can never end up in a pull request here by accident.
 
@@ -43,14 +43,14 @@ Most agent-memory tooling reaches for retrieval infrastructure: vector databases
 
 ## Scope — and when you want something heavier
 
-Be clear about what this is. **Imago is a deliberately basic setup for learning how agents are actually built and how their memory works.** It is a convention over Claude Code's native subagents: a few markdown templates, two scripts, and an argument about the write path. You can read the whole thing in an afternoon and you will understand every file in it. That is the point — the mechanism is the deliverable, not a feature list.
+Be clear about what this is. **Imago is a deliberately basic setup for learning how agents are actually built and how their memory works.** It is a convention over Claude Code's native subagents: a few markdown templates, four short scripts, and an argument about the write path. You can read the whole thing in an afternoon and you will understand every file in it. That is the point — the mechanism is the deliverable, not a feature list.
 
 If what you want is capability out of the box rather than understanding, two open-source frameworks already solve that and solve it well:
 
 - **[OpenClaw](https://github.com/openclaw/openclaw)** — a full agent runtime rather than a framework you assemble. Agents that run 24/7 across 20+ messaging platforms, 100+ built-in skills with a [ClawHub](https://clawhub.ai) registry and one-command install, 1,000+ external tool integrations, any MCP server available without writing a wrapper, browser automation, scheduling, voice, and multi-agent coordination. If your problem is coordination and breadth, start here.
 - **[Hermes Agent](https://github.com/NousResearch/hermes-agent)** — a single self-improving agent with 40+ built-in tools: web search, browser automation, visual understanding, code execution, subagent delegation, planning, scheduled tasks, and a memory system with eight pluggable providers. If your problem is always-on automation that learns your preferences over time, start here.
 
-Reach for one of those if you want batteries included, always-on multi-platform operation, or a marketplace of skills you did not have to write. Reach for Imago if you already live in Claude Code, want two to five agents rather than a platform, and would rather own five files than adopt a runtime.
+Reach for one of those if you want batteries included, always-on multi-platform operation, or a marketplace of skills you did not have to write. Reach for Imago if you already live in Claude Code, want a handful of agents rather than a platform, and would rather own a directory of markdown than adopt a runtime.
 
 The two are not alternatives so much as different rungs. Imago's memory contract is [borrowed from Hermes](docs/design.md) — bounded files, budget as a forcing function, consolidation on fill — so the mental model transfers directly. Outgrowing this repo means moving to a framework whose memory model you already understand, which is a better outcome than never having understood it.
 
@@ -186,6 +186,8 @@ Agents intended to run unattended declare it in an `## Operating mode` section, 
 | [docs/proactivity.md](docs/proactivity.md) | What changes when an agent runs with nobody watching |
 | [templates/agent.md](templates/agent.md) | The agent skeleton |
 | [examples/toby.md](examples/toby.md) | A complete worked agent, commented |
+| [tools/new-agent](tools/new-agent) · [tools/check](tools/check) | Scaffold an agent; verify an installed fleet |
+| [tools/hooks/](tools/hooks/) | Optional `Stop`-hook enforcement of the memory write |
 
 ## Contributing
 
