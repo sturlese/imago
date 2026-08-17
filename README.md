@@ -133,6 +133,20 @@ tools/check
 
 The first two are the agent; the third is an errand the orchestrator runs. Only the first two get session hooks, and only the second can be scheduled.
 
+If you already run with permission checks bypassed, `--allowedTools` becomes unnecessary — but keep `--add-dir`, which controls *scope* rather than approval:
+
+```bash
+claude --agent toby --add-dir ~/.imago --dangerously-skip-permissions
+```
+
+Worth an alias for an agent you use often:
+
+```bash
+alias toby='claude --agent toby --add-dir ~/.imago'
+```
+
+Note what that flag removes: an agent's restraint is then only its prompt. Fine for a read-only observer like Toby, worth thinking about for an agent whose mandate involves writing.
+
 > **In the `-p` form the two flags are not optional.** Writes outside the working directory are denied by default, and under `-p` there is nobody to approve them — so without `--add-dir ~/.imago --allowedTools Write Edit` the agent runs, reports, and records nothing. The prompt also has to go through **stdin**, because both flags are variadic and would otherwise swallow a trailing prompt argument. This is the most common way an Imago agent silently accomplishes nothing — [full explanation](docs/proactivity.md).
 
 ## Creating your own agent
