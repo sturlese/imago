@@ -93,7 +93,7 @@ But that only works if the personality changes behaviour. "You are an enthusiast
 
 ## What Imago deliberately does not do
 
-- **No scheduler.** Proactivity is most of the point, but the plumbing is native (`/schedule`). A wrapper here would date badly and would turn a convention into an orchestrator. See [proactivity.md](proactivity.md).
+- **No scheduler.** Proactivity is most of the point, but a locally-defined agent with local memory is scheduled with the operating system's own cron — Claude Code's scheduling runs in the cloud, where neither the definition nor the memory exists. See [proactivity.md](proactivity.md).
 - **No retrieval layer.** No vector store, no embeddings, no search index. Memory is small on purpose; it is read whole, not queried.
 - **No skills.** Skills are shared and stateless, memory is private and stateful, and treating them as the same kind of thing is the mistake this repo is organised to avoid.
 - **No locking.** One writer per memory directory, by construction. Concurrency problems are avoided rather than solved.

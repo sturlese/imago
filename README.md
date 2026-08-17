@@ -37,7 +37,7 @@ Most agent-memory tooling reaches for retrieval infrastructure: vector databases
 
 - **No vector DB, no embeddings, no index.** An agent's memory is small by design, because a tight budget is what forces it to curate. Nothing here needs to be searched; it needs to be *read*, whole, at the start of every session.
 - **No runtime.** Imago generates the `.md` files Claude Code already reads. Delete Imago and your agents keep working.
-- **No scheduler.** Proactivity matters — it is most of the point — but the plumbing is already native. Imago documents the contract an agent must satisfy to run unattended and leaves the cron to `/schedule`.
+- **No scheduler.** Proactivity matters — it is most of the point — but a local agent with local memory is scheduled with your operating system's cron, not wrapped in a bespoke one. Imago documents the contract it must satisfy to run unattended; [proactivity.md](docs/proactivity.md) has the command.
 - **Personality is functional or it is decoration.** "You are a quirky assistant" changes nothing. A personality is only worth writing down if it changes what the agent *notices*, what it *reports*, and above all what it *refuses to do*.
 - **The write path is enforced, not requested.** The hard problem in agent memory is not storage, it is that agents reliably read their memory and unreliably write it. Imago's templates make the write structurally unavoidable rather than politely instructed. This is the design's centre — [the full argument is here](docs/design.md).
 

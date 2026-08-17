@@ -26,7 +26,22 @@ Every part of that line is load-bearing:
 
 `--bg` starts it in the background instead, and `claude agents` manages background sessions.
 
-Once that command works from your shell, any scheduler drives it: cron, launchd, a CI job, or Claude Code's own scheduling. Imago has no opinion about which, and deliberately wraps none of them — a wrapper here would date badly and would turn a convention into an orchestrator.
+Once that command works from your shell, **the scheduler is your operating system's**. On macOS or Linux that is `crontab -e`:
+
+```cron
+0 9 * * 1  cd /path/to/project && echo "Review this project's Claude Code setup." | /usr/local/bin/claude -p --agent toby --allowedTools Write Edit --add-dir ~/.imago >> ~/.imago/toby.log 2>&1
+```
+
+Use absolute paths for `claude` — cron's `PATH` is minimal — and redirect the output somewhere, since nothing is attached to read it.
+
+**Claude Code's own scheduling does not fit this.** It is worth knowing why, because the reason is structural rather than a missing feature:
+
+- **Scheduled routines run in the cloud.** A cloud session has neither your agent definition in `~/.claude/agents/` nor its memory in `~/.imago/` — both are on your machine. The agent would start with no identity and nothing to remember.
+- **In-session cron is session-only.** Jobs created inside a Claude Code session live in memory, vanish when the session exits, and enqueue a prompt into *that* session rather than launching a chosen agent.
+
+A locally-defined agent with local memory is scheduled locally. If you want the cloud instead, the memory has to move somewhere both sides can reach — which is a different architecture, and a good reason to leave the fleet on one machine until you actually need otherwise.
+
+Imago wraps none of this deliberately: a scheduler wrapper here would date badly and would turn a convention into an orchestrator.
 
 ## Grant the narrowest thing that works
 
