@@ -1,7 +1,5 @@
 ![Imago — factory for intelligent agents](assets/imago.png)
 
-# Imago
-
 **A template for building local Claude Code agents that remember who they are. Persistent memory, functional personality, zero infrastructure.**
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg) ![Claude Code](https://img.shields.io/badge/Claude_Code-native_subagents-8B5CF6) ![Python](https://img.shields.io/badge/Python-3.10%2B_stdlib_only-3776AB) ![Dependencies](https://img.shields.io/badge/dependencies-zero-brightgreen)
