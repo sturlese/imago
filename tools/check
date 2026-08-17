@@ -33,6 +33,12 @@ MODE_RE = re.compile(r"^##\s*Operating mode\s*$(.*?)(?=^##\s|\Z)", re.M | re.S)
 # An instruction to *invoke* a skill, not a mention of skill files on disk.
 SKILL_USE_RE = re.compile(r"\b(invoke|call|run|use)\b[^.\n]{0,40}\bskills?\b(?!\s*/)", re.I)
 SECRET_RE = re.compile(r"\b(sk-[A-Za-z0-9]{16,}|ghp_[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{12,}|xox[baprs]-[A-Za-z0-9-]{10,})")
+# Imperatives aimed at whoever reads the fact. Memory is re-read into the agent's
+# own context every run, so an instruction stored here is one the agent will keep
+# giving itself. Record what a source claims, never what it instructs.
+INJECTION_RE = re.compile(
+    r"\b(ignore|disregard|forget)\b[^.\n]{0,30}\b(previous|prior|above|earlier|all)\b[^.\n]{0,25}\b(instruction|prompt|rule|direction)s?\b"
+    r"|\byou are now\b|\bnew instructions?\s*:", re.I)
 UNFINISHED = "IMAGO:UNFINISHED"
 
 findings: list[tuple[str, str, str, str]] = []
@@ -94,6 +100,11 @@ def check_fact(path: Path, rel: str) -> None:
 
     if m := SECRET_RE.search(text):
         add("error", "secret", rel, f"looks like a credential ({m.group(1)[:8]}...) — memory is replayed into every future run")
+
+    if m := INJECTION_RE.search(text):
+        add("error", "injection", rel,
+            f"reads as an instruction, not a fact ({m.group(0)[:40]!r}) — memory is re-read into the "
+            "agent's own context, so this is an instruction it would keep giving itself")
 
 
 def check_memory(memory_dir: Path, name: str) -> None:
