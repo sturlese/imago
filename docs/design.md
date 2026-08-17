@@ -68,6 +68,19 @@ A tight budget forces the agent to decide what earns a place, and that decision 
 
 One behavioural consequence worth knowing: an agent's memory is read into context at the start of its run. **Writes it makes during that run do not change what it is currently working from.** They land for next time. An agent that writes a fact and then reasons as though it can read it back is reasoning about a file it cannot see.
 
+### Why bounded, and not a dated journal
+
+The obvious alternative is to append: one file per day, never decide anything at write time, compact later. It is a tempting design because writing becomes free.
+
+It is not what the two mature open-source agent systems do, and the reason is the same in both. Memory here is **injected into the system prompt**, so it has to be small enough to read in full on every run. A journal that only grows cannot be injected — it needs a retrieval step, which is a heavier architecture with its own failure modes.
+
+- **[Hermes Agent](https://github.com/NousResearch/hermes-agent)** keeps bounded files under `~/.hermes/memories/`, injected as a frozen snapshot at session start, with character limits and consolidation when capacity fills. No dated files at all: the agent curates in-run.
+- **[OpenClaw](https://github.com/openclaw/openclaw)** *does* have dated capture — daily notes, ingested by a scheduled "dreaming" pass with light and deep phases. But that pipeline is a **feeder**. Its own changelog describes the destination: promotion writes into `MEMORY.md`, capped "by compacting oldest auto-promoted sections while preserving user-authored notes, keeping active memory below the bootstrap budget."
+
+So all three architectures end in the same place — a bounded set read whole at session start. What differs is the feeder. OpenClaw automates capture from transcripts because it runs always-on across many channels and nobody is curating; Hermes and Imago have the agent decide in-run, because the volume is small enough that deciding is cheap.
+
+This is the capture-lane / curated-lane split, and Imago deliberately ships only the curated lane. **Add a capture lane when the volume justifies it** — when the agent starts losing things because it cannot decide at write time, or when consolidation begins eating a real share of every run. Adding it earlier buys a scheduled compaction job that can fail silently, to solve a problem you do not have.
+
 ## Personality is functional or it is decoration
 
 The podcast's most transferable idea is that roles which could never be cost-justified with humans become free when an agent costs nothing at the margin — a colleague whose only job is to ask "how do we 10× this?" is not a hire anyone would make, and is trivially worth having as an agent.

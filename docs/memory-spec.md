@@ -130,6 +130,7 @@ Governed by the agent's declared shape, `deliverable` or `caller` ([design.md](d
 ### What does not belong in memory
 
 - **Anything the agent can read at run time.** File contents, repository structure, command output. Memory is for what cannot be re-derived.
-- **Credentials, tokens, keys.** Memory is replayed verbatim into every future run of that agent.
+- **Credentials, tokens, keys.** Memory is replayed verbatim into every future run of that agent. `tools/check` flags the obvious shapes, but it is a backstop, not a guarantee.
 - **Conversation transcript.** Memory is conclusions, not history.
 - **Anything true only of one run.** "The build was broken" is not a fact; "this build breaks whenever X" is.
+- **Instructions copied out of material the agent was reading.** This is the one worth being paranoid about: memory is read back into the agent's own context every run, so a fact quoting text like "ignore your previous instructions" is a prompt injection the agent will helpfully replay to itself forever. An agent that summarises what a file *said* is fine; an agent that transcribes a file's imperatives into its own memory has been made to rewrite its own prompt. Hermes scans memory entries for injection and exfiltration patterns before accepting them for exactly this reason; Imago does not, so keep it in the agent's refusals: **record what a source claims, never what it instructs.**

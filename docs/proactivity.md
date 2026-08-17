@@ -91,6 +91,25 @@ The point of putting it in the body is that **declaring the mode and instructing
 
 `tools/check` verifies the section exists and, when the mode is `unattended`, that the memory shape is not discretionary.
 
+## Optional: let the harness enforce the write
+
+Because a session-level agent gets a `Stop` event, a hook can refuse to end the session until the memory changed. This is the enforcement that a subagent cannot have, and it is the strongest of the three — a hook does not have a bad day.
+
+Two scripts ship in [`tools/hooks/`](../tools/hooks/): `imago-session-start.sh` drops a marker, `imago-stop.sh` compares against it and blocks once if nothing was written. Copy them somewhere stable and register both:
+
+```json
+{
+  "hooks": {
+    "SessionStart": [{"hooks": [{"type": "command", "command": "~/.imago/hooks/imago-session-start.sh"}]}],
+    "Stop":         [{"hooks": [{"type": "command", "command": "~/.imago/hooks/imago-stop.sh"}]}]
+  }
+}
+```
+
+Both no-op unless the session is running as an agent that has a memory directory, so **ordinary sessions and non-Imago agents are unaffected** — the hook reads `agent_type` from the payload Claude Code provides. The Stop hook blocks at most once (it honours `stop_hook_active`), so a genuinely empty run ends on the second pass rather than hanging.
+
+Treat it as a backstop under `deliverable`, not a replacement for it: a hook can check *that* something was written, never *what*, and it does nothing at all for the subagent form.
+
 ## Choosing a cadence
 
 Match the interval to how fast the thing being watched actually changes. An agent watching your own tooling has nothing new to say hourly; daily or weekly is usually right. Over-frequent scheduling is the most common way a useful agent becomes noise — and because each run costs tokens whether or not it finds anything, it is also the most common way one becomes expensive.
