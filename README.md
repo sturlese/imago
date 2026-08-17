@@ -1,3 +1,5 @@
+![Imago — factory for intelligent agents](assets/imago.png)
+
 # Imago
 
 **A template for building local Claude Code agents that remember who they are. Persistent memory, functional personality, zero infrastructure.**
