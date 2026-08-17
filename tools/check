@@ -40,6 +40,12 @@ INJECTION_RE = re.compile(
     r"\b(ignore|disregard|forget)\b[^.\n]{0,30}\b(previous|prior|above|earlier|all)\b[^.\n]{0,25}\b(instruction|prompt|rule|direction)s?\b"
     r"|\byou are now\b|\bnew instructions?\s*:", re.I)
 UNFINISHED = "IMAGO:UNFINISHED"
+# Absolute paths in a fact turn into a default target when a request names none.
+# Harness locations (~/.claude, ~/.imago) are shared conventions, not stored
+# targets, so they are exempt — naming them is describing the world, not
+# remembering where something happened to sit.
+ABSPATH_RE = re.compile(
+    r"(?<![\w~])(?:/(?:Users|home)/[\w.-]+|~)/(?!\.(?:claude|imago)\b)[\w.-]+/[\w./-]+")
 
 findings: list[tuple[str, str, str, str]] = []
 
@@ -100,6 +106,11 @@ def check_fact(path: Path, rel: str) -> None:
 
     if m := SECRET_RE.search(text):
         add("error", "secret", rel, f"looks like a credential ({m.group(1)[:8]}...) — memory is replayed into every future run")
+
+    if m := ABSPATH_RE.search(text):
+        add("error", "abspath", rel,
+            f"stores an absolute path ({m.group(0)[:36]}...) — identify a subject by what it is, not "
+            "where it sat. A remembered path becomes a default target when a request names none")
 
     if m := INJECTION_RE.search(text):
         add("error", "injection", rel,
