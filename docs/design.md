@@ -39,6 +39,8 @@ The agent's task *is* producing or updating a memory file. There is no version o
 
 Prefer this shape. It needs no supporting machinery and it cannot silently half-succeed.
 
+**Bind the rule to a unit of work, not to a turn.** "Every run writes a file" is right for a scheduled one-shot, where the run and the work are the same thing. In an interactive session they are not: most turns are conversation, and an agent told that every exchange must produce a file will invent something to file — most often a fact about the session itself, which is a diary entry wearing a fact's frontmatter. Say explicitly what counts as work, and give the agent permission to answer and write nothing when a turn is not it.
+
 ### `caller` — something else persists
 
 The agent returns its findings as its output, and the caller — a script, a scheduled job, the orchestrating session — writes them to the memory directory. The write now lives in code, where it either happens or raises.
