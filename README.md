@@ -106,7 +106,16 @@ You are now in a conversation with Toby rather than with Claude Code. Ask him to
 claude --agent toby --add-dir ~/.imago
 ```
 
-Ask him what he already knows about the project. He will tell you, from a file he wrote in a session that no longer exists. That round-trip is the whole thesis; everything else in this repo is in service of making it reliable.
+Ask him what he already knows about the project. He will tell you, from a file he wrote in a session that no longer exists.
+
+**Then ask him to review it again.** This is the test that matters. A memory you can read back only proves a file survived; what you want is a memory that changes what the agent *does*. Watch for:
+
+- he re-checks the findings he already holds **before** looking for anything new, because one of his own facts told him to;
+- he adds an occurrence to an existing fact instead of filing the same finding twice;
+- he files only what is genuinely new;
+- he declines to file something that fails his own bar, and says so.
+
+That is the whole thesis. Everything else in this repo is in service of making it reliable.
 
 Check the fleet at any time:
 
