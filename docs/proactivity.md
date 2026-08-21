@@ -26,7 +26,9 @@ Every part of that line is load-bearing:
 
 `--bg` starts it in the background instead, and `claude agents` manages background sessions.
 
-Once that command works from your shell, **the scheduler is your operating system's**. On macOS or Linux that is `crontab -e`:
+Once that command works from your shell, it needs a scheduler to fire it. Two of them actually run locally — a cloud one does not.
+
+**Your operating system's cron is the plainest of the two.** On macOS or Linux that is `crontab -e`:
 
 ```cron
 0 9 * * 1  cd /path/to/project && echo "Review this project's Claude Code setup." | /usr/local/bin/claude -p --agent toby --allowedTools Write Edit --add-dir ~/.imago >> ~/.imago/toby.log 2>&1
@@ -34,12 +36,25 @@ Once that command works from your shell, **the scheduler is your operating syste
 
 Use absolute paths for `claude` — cron's `PATH` is minimal — and redirect the output somewhere, since nothing is attached to read it.
 
-**Claude Code's own scheduling does not fit this.** It is worth knowing why, because the reason is structural rather than a missing feature:
+**Claude Code Desktop's local scheduled tasks are the other.** A task created from the Routines page (or by asking a Desktop session to "set up a daily review at 9am") runs on your machine, persists across restarts, and fires a fresh session as often as once a minute — no shell, no crontab. Its prompt lives in `~/.claude/scheduled-tasks/<task-name>/SKILL.md`; schedule, working folder, model and permission mode are set through the Edit form. It only fires while the Desktop app is open and the machine is awake, and a missed run gets one catch-up on wake rather than a backlog.
 
-- **Scheduled routines run in the cloud.** A cloud session has neither your agent definition in `~/.claude/agents/` nor its memory in `~/.imago/` — both are on your machine. The agent would start with no identity and nothing to remember.
-- **In-session cron is session-only.** Jobs created inside a Claude Code session live in memory, vanish when the session exits, and enqueue a prompt into *that* session rather than launching a chosen agent.
+The trap is that a task's Instructions field ("use the toby agent to review...") dispatches Toby **as a subagent of the task's own session** — the weakest of the three launch modes above, with no `Stop` hook and nothing that verifies the memory write. To get the session-level mode instead, the task's working folder needs its own `.claude/settings.json` naming the agent and granting it the memory tree, so the task's session *is* Toby rather than a session that calls him:
 
-A locally-defined agent with local memory is scheduled locally. If you want the cloud instead, the memory has to move somewhere both sides can reach — which is a different architecture, and a good reason to leave the fleet on one machine until you actually need otherwise.
+```json
+{
+  "agent": "toby",
+  "permissions": {
+    "additionalDirectories": ["~/.imago"],
+    "allow": ["Write(~/.imago/**)", "Edit(~/.imago/**)"]
+  }
+}
+```
+
+This is unverified against a live run as of this writing — confirm with **Run now** before trusting it unattended, the same way you would verify any new launch command.
+
+**Cloud routines still do not fit.** A cloud session has neither your agent definition in `~/.claude/agents/` nor its memory in `~/.imago/` — both are on your machine, so the agent would start with no identity and nothing to remember. **In-session cron (`/loop`) still does not fit either** — jobs created inside a session live in memory, vanish when the session exits, and enqueue a prompt into *that* session rather than launching a chosen agent.
+
+A locally-defined agent with local memory is scheduled locally, by either of the two schedulers above. If you want the cloud instead, the memory has to move somewhere both sides can reach — which is a different architecture, and a good reason to leave the fleet on one machine until you actually need otherwise.
 
 Imago wraps none of this deliberately: a scheduler wrapper here would date badly and would turn a convention into an orchestrator.
 
@@ -86,6 +101,8 @@ An open mandate plus a schedule burns budget producing nothing. "Look for anythi
 This is what memory is for, and it needs to be explicit in the definition rather than assumed:
 
 > Before reporting a finding, check your memory. If you have reported it before, do not report it again — add an occurrence to the existing `pattern` fact instead. If it is something that was rejected, do not re-propose it unless the reason for the rejection no longer holds, and say what changed.
+
+The comparison this instruction asks for is only as reliable as what a `pattern` fact is keyed on. "The same problem I found before" is a judgment call the model can get wrong in either direction; a stable handle it can match against literally — a file path plus line, a rule ID, a hostname — is not. Give the agent something concrete to key its patterns on wherever the finding has one.
 
 Without this an agent is technically correct and practically unbearable.
 
