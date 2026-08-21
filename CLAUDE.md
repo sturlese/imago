@@ -77,10 +77,10 @@ other projects into this repo's rationale.
 ## Non-goals
 
 Declining these is a feature, and each one is argued in `docs/design.md`: no
-scheduler (the OS's own cron covers a local agent; Claude Code's own scheduling
-runs in the cloud, where neither the agent's definition nor its memory exists),
-no retrieval layer, no vector store, no
-skills, no locking, no coordinator agent, no dependencies.
+scheduler (the OS's own cron, or Claude Code Desktop's local scheduled tasks,
+cover a local agent; only its cloud routines don't fit, since neither the
+agent's definition nor its memory exists there), no retrieval layer, no vector
+store, no skills, no locking, no coordinator agent, no dependencies.
 
 Before adding anything, check it against that list.
 

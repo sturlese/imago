@@ -93,7 +93,7 @@ But that only works if the personality changes behaviour. "You are an enthusiast
 
 ## What Imago deliberately does not do
 
-- **No scheduler.** Proactivity is most of the point, but a locally-defined agent with local memory is scheduled with the operating system's own cron — Claude Code's scheduling runs in the cloud, where neither the definition nor the memory exists. See [proactivity.md](proactivity.md).
+- **No scheduler.** Proactivity is most of the point, but a locally-defined agent with local memory is scheduled locally — with the operating system's own cron, or with Claude Code Desktop's local scheduled tasks. Its cloud routines are the ones that don't fit: neither the definition nor the memory exists there. See [proactivity.md](proactivity.md).
 - **No retrieval layer.** No vector store, no embeddings, no search index. Memory is small on purpose; it is read whole, not queried.
 - **No skills.** Skills are shared and stateless, memory is private and stateful, and treating them as the same kind of thing is the mistake this repo is organised to avoid.
 - **No locking.** One writer per memory directory, by construction. Concurrency problems are avoided rather than solved.
