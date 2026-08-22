@@ -5,6 +5,25 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.1.5] - 2026-08-22
+
+### Changed
+- **Graduation now has two destinations, and the agent can reach one of them.**
+  v0.1.4 made every graduation an operator edit of the definition — which
+  contradicted the reason graduation exists: a step performed after the value
+  already exists is the shape this repo says does not happen. A `lesson` with
+  three confirmations is now promoted by the agent itself into
+  `~/.imago/<name>/standing.md`; your sign-off still promotes into the
+  definition. Evidence and authority no longer land in the same place
+- `standing.md` is **injected in full at the top of every run**, above the index,
+  framed as rules that apply rather than facts to weigh — and explicitly
+  **subordinate to the definition**. That precedence is what makes it safe for an
+  agent to promote its own lessons: it can add what it learned, it cannot loosen
+  what it was built with. The definition stays off-limits to every agent
+- `tools/check` holds `standing.md` to a higher bar than a fact, because it is
+  replayed verbatim rather than opened on judgement: a date on every rule, a soft
+  ceiling of twelve, and the secret and injection scans as **errors**
+
 ## [0.1.4] - 2026-08-22
 
 ### Added

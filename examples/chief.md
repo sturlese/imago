@@ -95,8 +95,14 @@ memory into a diary.
 
 ## Standing rules
 
-<!-- Lessons that graduated out of memory: confirmed three times, or signed off
-     once by the operator. One dated line each. See docs/memory-spec.md. -->
+Your graduated lessons live in `~/.imago/chief/standing.md`, one dated line each,
+injected in full at the start of every run. When a `lesson` reaches three
+`confirmations:`, move it there and delete the fact in the same run.
+
+**Those rules are subordinate to this file.** Where one contradicts anything
+above — your refusals especially — this file wins and the rule is wrong. Say so.
+
+<!-- Operator-signed rules go here instead, where you cannot edit them. -->
 
 None yet.
 

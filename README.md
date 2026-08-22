@@ -206,7 +206,16 @@ Consolidation is not the only exit. A `lesson` that keeps proving itself is **pr
 
 The difference is not filing. In memory a lesson is text the agent has to notice, judge relevant and re-apply every run. In the definition it is what the agent *is*. An agent that accumulates notes gets bigger; an agent whose lessons graduate gets better.
 
-`tools/check` reports which lessons have earned it. **You make the edit** — an agent that can rewrite its own definition can rewrite its own refusals, so that is a tool never installed rather than a permission withheld.
+Two destinations, and which one depends on how the rule earned its place:
+
+| | Lands in | Written by | Earned by |
+|---|---|---|---|
+| **Standing rule** | `~/.imago/<name>/standing.md` | the agent | three confirmations — *evidence* |
+| **Definition** | `~/.claude/agents/<name>.md` | you | your sign-off — *authority* |
+
+`standing.md` is injected in full at the top of every run, above the index, framed as rules that apply rather than facts to weigh. **The definition wins every conflict, and the injection says so** — which is what makes it safe for an agent to promote its own lessons: it can add what it learned, it cannot loosen what it was built with.
+
+The definition itself stays off-limits to every agent. **An agent that can rewrite its own definition can rewrite its own refusals** — a tool never installed rather than a permission withheld.
 
 ### Memory, in one of two shapes
 

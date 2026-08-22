@@ -9,6 +9,7 @@ Normative. This is the contract an Imago agent's memory satisfies, and what `too
 ~/.imago/<name>/                    the agent's memory
 ├── MEMORY.md                       index — one line per fact
 ├── <fact-slug>.md                  one fact per file
+├── standing.md                     optional — lessons that graduated out of memory
 ├── brief.md                        optional — what this agent last reported
 └── fleet                           optional — specialists that report to it
 ```
@@ -90,23 +91,27 @@ check for a period before investigating anything else.
 
 Link between facts with `[[other-fact-slug]]`.
 
-## Two files that are not facts
+## Three files that are not facts
 
-`brief.md` and `fleet` exist only for agents that run as a fleet
-([fleet.md](fleet.md)) and are deliberately outside everything above:
+`standing.md`, `brief.md` and `fleet` sit in the memory directory and are
+deliberately outside everything above:
 
-| | `brief.md` | `fleet` |
-|---|---|---|
-| What | at most five lines: the date, what shipped, what is stuck, what needs the operator | one specialist name per line, `#` for comments |
-| Written by | the agent itself, overwritten every run | you, or `new-agent --fleet` |
-| Read by | its chief of staff | its own agent, at session start |
-| Frontmatter | none — it is a report, not a fact | n/a |
-| In `MEMORY.md`? | no | no |
-| In the budget? | **no** | no |
+| | `standing.md` | `brief.md` | `fleet` |
+|---|---|---|---|
+| What | lessons that graduated: one dated rule per line | at most five lines: the date, what shipped, what is stuck, what needs the operator | one specialist name per line, `#` for comments |
+| Written by | the agent, on graduation | the agent itself, overwritten every run | you, or `new-agent --fleet` |
+| Read by | itself — injected in full at session start | its chief of staff | its own agent, at session start |
+| Frontmatter | none | none — it is a report, not a fact | n/a |
+| In `MEMORY.md`? | no | no | no |
+| In the budget? | **no** | **no** | no |
 
-A brief is what the agent *reported*; facts are what it *learned*. Keeping the
-brief outside the budget is the point: the budget exists to force curation of
-facts, and a report overwritten every run has nothing to curate.
+`brief.md` and `fleet` matter only for a fleet ([fleet.md](fleet.md));
+`standing.md` applies to any agent.
+
+A brief is what the agent *reported*; facts are what it *learned*; a standing rule
+is what it no longer has to work out. Keeping all three outside the budget is the
+point: the budget exists to force curation of open questions, and a report
+overwritten every run, or a rule already settled, has nothing to curate.
 
 ## Graduation — the other way out of memory
 
@@ -131,34 +136,62 @@ optional, no longer a call the agent makes.
   teaches the operator anything.
 
 **Graduation is a move, not a copy.** The fact is deleted and `MEMORY.md` rebuilt
-in the same run. A bounded memory that also keeps everything it has settled is
+in the same run — and, under the `deliverable` shape, that write *is* the run's
+output, so promotion is not a chore left for afterwards. A bounded memory that also keeps everything it has settled is
 not bounded, and the index should hold open questions rather than closed ones.
 
-### The operator makes the edit, and the agent may not
+### Two destinations, and the two paths are not the same strength
 
-The definition lives in `~/.claude/agents/`, which no Imago agent is granted —
-that is the whole reason memory lives in a separate tree. Graduation therefore
-ends with the agent **proposing** and a human editing.
+A graduated rule can land in one of two places, and **which one depends on how it
+earned its way there**:
 
-That is not a limitation to route around; it is the point. **An agent that can
-rewrite its own definition can rewrite its own refusals**, and refusals are the
-field the whole personality rests on. A capability like that cannot be walked
-back by a rule, because the rule is in the file it can edit. It is deliberately
-absent rather than forbidden — the same reason the chief of staff ships without a
-shell ([fleet.md](fleet.md)).
+| | Lands in | Written by | Earned by |
+|---|---|---|---|
+| **Standing rule** | `~/.imago/<name>/standing.md` | the agent | three confirmations — *evidence* |
+| **Definition** | `~/.claude/agents/<name>.md` | you | your sign-off — *authority* |
 
-So the agent says, in its output: *this lesson has held three times; it belongs in
-my standing rules.* `tools/check` reports the same thing, so the queue is visible
-without reading anything. You paste the line, dated, and delete the fact.
+`standing.md` is injected verbatim at the top of every run by the `SessionStart`
+hook, above the index, framed as rules that apply rather than facts to weigh. It
+is not frontmattered, not listed in `MEMORY.md`, and outside the budget. One
+dated line each, and a soft ceiling of twelve — past that you have written a
+second definition.
+
+**The definition wins every conflict, and the injection says so.** That is what
+makes it safe for an agent to write its own standing rules: it can add what it
+has learned, it cannot loosen what it was built with. Refusals live in the
+definition, which no Imago agent is granted, so a rule that contradicts one is
+simply wrong and the agent is told to say so.
+
+### Why the agent may write these, and may not write its definition
+
+The objection to letting an agent promote its own lessons is that it ends up
+authoring its own instructions. It already does: a `lesson` carries **How to
+apply**, and that is an instruction the agent writes and reads back every run —
+which is why `tools/check` scans facts for imperatives at all. Graduation does not
+create that capability.
+
+What it does change is **force**. A fact is opened when the agent judges it
+relevant; a standing rule is in front of it unconditionally. So the promotion is
+real, and it is bounded rather than forbidden: three confirmations before
+anything moves, a date on every line, a ceiling on how many there can be, the
+same secret and injection scanning facts get — applied harder here, because this
+text is replayed verbatim rather than opened on judgement — and the definition
+above all of it.
+
+**The definition stays off-limits, and that is a tool never installed rather than
+a permission withheld.** An agent that can rewrite its own definition can rewrite
+its own refusals, and refusals are the field everything else rests on. A rule
+against it would live in the file it can edit.
 
 ### What it costs
 
-A graduated rule is hard to notice and hard to unlearn. It has left the memory
-directory, so nothing prompts a review of it, and a wrong one becomes an
-invisible standing instruction. Two mitigations, both cheap: every standing rule
-carries **the date it graduated**, and the definition belongs in version control.
-When one turns out to be wrong, delete the line — do not write a fact that argues
-against it.
+A graduated rule is hard to notice and hard to unlearn. It has left the index, so
+nothing prompts a review of it, and a wrong one becomes a standing instruction
+nobody re-reads. Three mitigations, all cheap: every rule carries **the date it
+graduated**, `tools/check` refuses an undated one, and the ceiling of twelve keeps
+the file short enough to read in one go. When one turns out to be wrong, **delete
+the line** — do not write a fact that argues against it, or the agent will hold
+both and pick arbitrarily.
 
 ## Budget
 

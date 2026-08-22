@@ -65,10 +65,13 @@ follows from that:
 - Limits belong in the tool list before they belong in prose: a capability never
   granted has no rule to forget. The `Never` line of `## Autonomy` is only for
   what a tool list cannot express.
-- Lessons **graduate**: confirmed three times or signed off once, a `lesson`
-  moves out of memory into the definition's `## Standing rules`, dated, and is
-  deleted from memory. The operator makes that edit — an agent that could
-  rewrite its own definition could rewrite its own refusals.
+- Lessons **graduate**, to one of two places by how they earned it: three
+  confirmations → the agent writes `~/.imago/<name>/standing.md` (evidence);
+  your sign-off → you write the definition (authority). Either way the fact is
+  deleted. `standing.md` is injected in full every run, above the index, and is
+  **subordinate to the definition** — that precedence is what makes it safe for
+  an agent to promote its own lessons. The definition stays off-limits to every
+  agent: one that could rewrite it could rewrite its own refusals.
 - Skills are shared and stateless; memory is private and stateful. Imago ships no
   skills.
 
