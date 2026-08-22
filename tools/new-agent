@@ -8,6 +8,7 @@ write anywhere inside the template checkout.
 
     tools/new-agent phoebe --memory deliverable
     tools/new-agent --from-example toby
+    tools/new-agent chief --memory deliverable --fleet research,scout
 
 Why memory is not under ~/.claude: an agent can only write to a directory it has
 been granted, and granting ~/.claude would hand it its own configuration, every
@@ -75,12 +76,21 @@ def render(text: str, name: str, shape: str) -> str:
     )
 
 
-def write_memory(memory_dir: Path, name: str) -> Path:
+def write_memory(memory_dir: Path, name: str, fleet: list[str]) -> Path:
     memory_dir.mkdir(parents=True, exist_ok=True)
     index = memory_dir / "MEMORY.md"
     if not index.exists():
         index.write_text(
             render((TEMPLATES / "MEMORY.md").read_text(encoding="utf-8"), name, ""),
+            encoding="utf-8",
+        )
+    if fleet:
+        # In the memory tree rather than the definition's frontmatter: this is
+        # state about the fleet, not identity, and a file carries no risk of a
+        # harness rejecting an unrecognised key. See docs/fleet.md.
+        (memory_dir / "fleet").write_text(
+            "# Specialists that report to this agent, one per line.\n"
+            + "\n".join(fleet) + "\n",
             encoding="utf-8",
         )
     return index
@@ -101,6 +111,11 @@ def main() -> int:
         "--from-example",
         metavar="NAME",
         help=f"install a worked example from {EXAMPLES.name}/ instead of a blank template",
+    )
+    p.add_argument(
+        "--fleet",
+        metavar="NAMES",
+        help="comma-separated specialists that report to this agent (writes a `fleet` file)",
     )
     p.add_argument("--agents-dir", help="where the definition goes (default: ~/.claude/agents)")
     p.add_argument("--memory-dir", help="where the memory goes (default: ~/.imago)")
@@ -138,6 +153,13 @@ def main() -> int:
             "identifier you call the agent by.",
         )
 
+    fleet = [n.strip() for n in (args.fleet or "").split(",") if n.strip()]
+    for member in fleet:
+        if not NAME_RE.match(member):
+            fail(f"invalid fleet member name '{member}'", "Same rules as an agent name.")
+        if member == name:
+            fail(f"'{name}' cannot be its own specialist")
+
     agents_dir, memory_root = resolve_roots(args.agents_dir, args.memory_dir)
     definition = agents_dir / f"{name}.md"
 
@@ -149,12 +171,20 @@ def main() -> int:
 
     agents_dir.mkdir(parents=True, exist_ok=True)
     definition.write_text(body, encoding="utf-8")
-    index = write_memory(memory_root / name, name)
+    index = write_memory(memory_root / name, name, fleet)
 
     memory_dir = index.parent
     print(f"definition  {definition}")
     print(f"memory      {memory_dir}/")
+    if fleet:
+        print(f"fleet       {memory_dir}/fleet  ({', '.join(fleet)})")
     print()
+
+    if fleet:
+        print("Each specialist writes brief.md in its own memory directory; this agent")
+        print("reads them. See docs/fleet.md — and note it needs Bash in its tools to")
+        print("dispatch, which the blank template does not grant.")
+        print()
 
     if not args.from_example:
         print("Now write the personality — four fields in the definition: disposition,")

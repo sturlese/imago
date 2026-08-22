@@ -22,8 +22,10 @@ generic, with nothing specific to the user's projects, employer or clients.
 docs/design.md         why the write path is the hard problem — the repo's thesis
 docs/memory-spec.md    normative memory contract; what tools/check verifies
 docs/proactivity.md    what changes when an agent runs unattended
+docs/fleet.md          running more than one: briefs, the chief, dispatch
 templates/             agent.md, fact.md, MEMORY.md — scaffolding sources
 examples/toby.md       one complete worked agent, deliberately generic
+examples/chief.md      a chief of staff: reads briefs, dispatches, holds the picture
 tools/new-agent        scaffolds definition + memory; refuses to write in the repo
 tools/check            verifies an installed fleet against the spec
 ```
@@ -53,7 +55,11 @@ follows from that:
 - Memory shape is `deliverable` or `caller`, never "update your memory at the
   end". `new-agent` refuses to scaffold without one.
 - Memory is bounded (12,000 chars, consolidate at 80%) because the budget is what
-  forces curation, not because storage is scarce.
+  forces curation, not because storage is scarce. `brief.md` is outside it: a
+  report overwritten every run has nothing to curate.
+- The `SessionStart` hook injects memory, occupancy, index drift and the fleet's
+  briefs. Occupancy is the one that matters: "consolidate at 80%" is not a rule
+  an agent can evaluate by itself.
 - Personality is four fields — disposition, voice, refusals, bar — and
   **refusals** is the load-bearing one. A personality without a `no` is a costume.
 - Skills are shared and stateless; memory is private and stateful. Imago ships no
@@ -90,6 +96,15 @@ Before adding anything, check it against that list.
 tools/new-agent scratch --memory deliverable \
     --agents-dir /tmp/imago-test/agents --memory-dir /tmp/imago-test/memory
 tools/check --agents-dir /tmp/imago-test/agents --memory-dir /tmp/imago-test/memory
+```
+
+For a change to the hooks, drive them directly — a payload in, JSON out, no model
+in the loop:
+
+```bash
+echo '{"agent_type":"toby","hook_event_name":"SessionStart","source":"startup"}' \
+  | IMAGO_MEMORY=/tmp/imago-test/memory tools/hooks/imago-session-start.sh \
+  | python3 -c 'import json,sys;print(json.load(sys.stdin)["hookSpecificOutput"]["additionalContext"])'
 ```
 
 The real test is the README quick start: install the example agent, run it, start

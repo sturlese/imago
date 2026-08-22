@@ -141,6 +141,27 @@ alias toby='claude --agent toby --add-dir ~/.imago'
 
 > **In the `-p` form the two flags are not optional.** Writes outside the working directory are denied by default, and under `-p` there is nobody to approve them — so without `--add-dir ~/.imago --allowedTools Write Edit` the agent runs, reports, and records nothing. The prompt also has to go through **stdin**, because both flags are variadic and would otherwise swallow a trailing prompt argument. This is the most common way an Imago agent silently accomplishes nothing — [full explanation](docs/proactivity.md).
 
+### More than one: a fleet
+
+Two agents that never read each other are two agents. A fleet is three conventions, and no runtime:
+
+- **The brief.** Each agent ends its run writing `~/.imago/<name>/brief.md` — at most five lines: the date, what shipped, what is stuck, what needs you. Overwritten every run. It is a report, not a fact: no frontmatter, not in the index, outside the budget.
+- **The chief of staff.** One agent holds the whole picture, reads the others' briefs, and is the one you talk to. `~/.imago/chief/fleet` lists who reports to it. A second worked example ships as [`examples/chief.md`](examples/chief.md).
+- **Dispatch is a process, not a subagent.** The chief launches a specialist as its own background session, because a subagent gets no hooks and nothing verifies that it wrote anything.
+
+```bash
+tools/new-agent --from-example chief
+tools/new-agent scout --memory deliverable
+printf 'scout\n' >> ~/.imago/chief/fleet
+claude --agent chief --add-dir ~/.imago
+```
+
+With the hooks installed, the chief opens with its own memory, how full it is, and every specialist's latest brief already in front of it.
+
+**The chief is a default channel, not a router** — talk to any specialist directly whenever you want depth, and tell it to update its brief. And it stays reachable only because it does not do the work: an agent's attention is its turn, so [the agent you talk to cannot be the agent that works](docs/design.md).
+
+Start with two and stop there until it has earned its keep — [docs/fleet.md](docs/fleet.md) has the mechanics, the cost note, and the list of things it deliberately does not do.
+
 ## Creating your own agent
 
 ```bash
@@ -184,10 +205,12 @@ Agents intended to run unattended declare it in an `## Operating mode` section, 
 | [docs/design.md](docs/design.md) | Why agents read memory reliably and write it unreliably, and the two shapes that fix it |
 | [docs/memory-spec.md](docs/memory-spec.md) | The memory contract: layout, fact types, budget, consolidation |
 | [docs/proactivity.md](docs/proactivity.md) | What changes when an agent runs with nobody watching |
+| [docs/fleet.md](docs/fleet.md) | Running more than one: briefs, the chief of staff, dispatch |
 | [templates/agent.md](templates/agent.md) | The agent skeleton |
 | [examples/toby.md](examples/toby.md) | A complete worked agent, commented |
+| [examples/chief.md](examples/chief.md) | A chief of staff for a fleet |
 | [tools/new-agent](tools/new-agent) · [tools/check](tools/check) | Scaffold an agent; verify an installed fleet |
-| [tools/hooks/](tools/hooks/) | Optional `Stop`-hook enforcement of the memory write |
+| [tools/hooks/](tools/hooks/) | Optional hooks: memory injected at session start, the write enforced at stop |
 
 ## Contributing
 
