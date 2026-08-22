@@ -27,7 +27,8 @@ argues each omission.
 ```
 
 Specialists run on a schedule and write briefs. The chief reads the briefs and
-talks to you. You talk to whoever you like.
+talks to you. You talk to whoever you like. Nothing in the fleet starts anything
+else.
 
 ## The brief
 
@@ -77,36 +78,37 @@ implicit — the chief's mandate names who reports to it.
 
 `tools/new-agent chief --memory deliverable --fleet research,scout` writes it.
 
-## Dispatch is a process, not a subagent
+## What starts a specialist — and it is never the chief
 
-```bash
-echo "<task>" | env -u CLAUDECODE claude -p --agent research \
-    --allowedTools Write Edit --add-dir ~/.imago &
-```
+Three things wake an agent, and the chief is none of them:
 
-**Not** the subagent tool. A subagent gets no session hooks, cannot be scheduled,
-and nothing verifies that it wrote anything — [design.md](design.md) documents
-that gap, and it is precisely the guarantee a fleet runs on. A background process
-gets a full session: `SessionStart` puts its memory in front of it, `Stop` refuses
-a run that recorded nothing, and its brief lands on disk.
+| | What it is | Imago has it |
+|---|---|---|
+| **A schedule** | a crontab line, fired whether or not anything happened | yes — [proactivity.md](proactivity.md) |
+| **An event** | something appeared: a file, a message, a commit | **no** — see below |
+| **You** | `claude --agent scout --add-dir ~/.imago` | yes |
 
-Subagents remain right for what the README already calls them: a quick errand
-inside work you are already doing.
+This is not a limitation to work around; it is what the working fleets actually
+do. In the accounts this repo draws on, the chief **messages the others and asks
+for updates** — the routine that makes a specialist run belongs to the specialist,
+and the brief travels *upward*. Nobody describes a chief that starts anything.
 
-Three details that will otherwise cost an afternoon:
+It is also the safer shape by some distance. Starting a session means running a
+command, which means giving the chief a shell — and a shell can launch a child
+with *more* permission than the parent has, which is precisely the escalation the
+harness refuses between sessions. A rule in a prompt is not a substitute for not
+having the capability.
 
-- **`env -u CLAUDECODE`** is needed when launching from *inside* a session —
-  Claude Code marks the environment and the child inherits it. From cron it is
-  unnecessary and harmless.
-- **Both flags are mandatory.** Without `--add-dir ~/.imago --allowedTools Write
-  Edit` the specialist cannot write its own memory or its brief, and the run
-  records nothing.
-- **The prompt goes through stdin**, because both flags are variadic and would
-  swallow a trailing prompt argument.
+So the chief's example ships with no `Bash`, and there is no dispatch command in
+this document. If you want one anyway, that is your call: grant `Bash`, scope it
+in your permissions to the `claude` command rather than to a shell, and know that
+you have opened the door above.
 
-Dispatching means the chief needs `Bash` in its tools. That is a real grant and
-worth scoping in your permissions to the `claude` command rather than handing over
-a shell.
+**Events are the real gap.** "Every time a recording lands in this folder,
+transcribe it and draft the posts" is the shape most of the useful proactivity in
+practice takes, and Imago has nothing for it — no watcher, no trigger. Today you
+approximate it with a schedule that checks. It is worth knowing that is an
+approximation.
 
 ## The chief is a default channel, not a router
 
@@ -128,10 +130,9 @@ queued until its next turn, or aborts it — neither is conversation. So an agen
 that is working is an agent you cannot talk to.
 
 The chief stays reachable **only because it does not do the work**. That is the
-load-bearing reason for the five-line brief, for dispatching as a background
-process, and for the chief's refusal to do a specialist's job. If you give the
-chief real work, your one conversational agent goes silent for minutes at a time
-and the fleet feels broken.
+load-bearing reason for the five-line brief and for the chief's refusal to do a
+specialist's job. If you give the chief real work, your one conversational agent
+goes silent for minutes at a time and the fleet feels broken.
 
 It is also why an interrupt is expensive here. Under the `deliverable` shape the
 run's only durable output is written at the end, so aborting a specialist
@@ -142,6 +143,16 @@ triggered by you instead of by the budget.
 
 Cron, as always — [proactivity.md](proactivity.md) has the full argument. A
 specialist gets a crontab line; the chief does not, because you are its trigger.
+
+**What the line says matters more than how often it fires.** A schedule decides
+*when* an agent wakes; the prompt decides whether it is an errand-runner or a
+colleague. `"Review this project's setup"` is a narrow standing order and the
+right starting point. The open form — *look across everything you have and do
+what is worth doing* — is what the mature accounts describe, and it only works on
+top of a context substrate rich enough to make the judgement: goals written down,
+history, the things nobody wrote in any document. On thin context the same prompt
+produces confident, expensive noise. [proactivity.md](proactivity.md) requires the
+narrow form, and that section says what the requirement is contingent on.
 
 ```cron
 0 9 * * 1  cd /path/to/project && echo "Review this project's setup." | /usr/local/bin/claude -p --agent scout --allowedTools Write Edit --add-dir ~/.imago >> ~/.imago/scout.log 2>&1
@@ -200,11 +211,13 @@ the work already exists: the chief does the job once, you review the output, and
 
 ## What this deliberately does not do
 
-- **No queue.** Dispatch is a process and a file. A queue needs a daemon, and a
-  daemon is the runtime this repo does not have.
-- **No specialist dispatching a specialist.** If research needs scout, that goes
-  through you or through cron. Agents starting agents is how a fleet spends a
-  budget overnight with nobody able to say why.
+- **No queue.** A queue needs a daemon, and a daemon is the runtime this repo does
+  not have. The files are the queue.
+- **No agent starting another agent** — not the chief, not a specialist. If
+  research needs scout, that goes through you or through a schedule. Agents
+  starting agents is how a fleet spends a budget overnight with nobody able to
+  say why, and it is the shape that turns one over-broad prompt into a fan-out.
+- **No event triggers.** Named above as a real gap rather than a decision.
 - **No agent-to-agent mailbox in place of files.** See the section above: a
   message does not survive the run.
 - **No chief with authority.** It holds the broad context and it is the default

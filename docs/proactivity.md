@@ -94,9 +94,15 @@ Interactive agents report to you. Unattended agents report to nobody — nothing
 
 For an agent in a fleet that somewhere is named: `brief.md`, five lines, overwritten every run — see [fleet.md](fleet.md).
 
-### 4. The mandate has to be narrow
+### 4. The mandate has to be narrow — and this one is conditional
 
 An open mandate plus a schedule burns budget producing nothing. "Look for anything interesting" is not a mandate. A schedulable agent has a specific trigger and a bounded job: *what* it looks at, *what* counts as a finding, and *when* to stop looking.
+
+**But be clear about what this requirement rests on, because it is the one rule here that is a consequence rather than a principle.** A narrow mandate is required because an Imago agent runs on thin context: its own bounded memory and whatever the working directory shows it. Given that, an open instruction has nothing to reason *from*, so it produces plausible, expensive noise.
+
+The mature practitioner accounts run the opposite prompt — some version of *look across everything you have and do what is worth doing* — and get their best work from it. The difference is not courage, it is substrate: those agents sit on written goals, meeting history, mail, calendar, and a deliberately captured record of the things nobody wrote down anywhere. **An open mandate is exactly as good as the context underneath it.**
+
+So: keep the mandate narrow while the context is a memory directory. Widen it only in step with what the agent can actually read, and expect the failure mode to be confident wrongness rather than silence — a proactive agent on thin context does not stall, it acts.
 
 ### 5. It must not repeat itself
 
@@ -147,6 +153,18 @@ Because it blocks only once, a genuinely empty run still ends — so on that sec
 The same `SessionStart` hook is what puts the agent's index, its occupancy percentage, any facts missing from the index, and its fleet's briefs into context before it starts. The occupancy is the part worth installing it for on its own: "consolidate above 80%" is not a rule an agent can evaluate without summing characters across a directory by hand.
 
 Treat it as a backstop under `deliverable`, not a replacement for it: a hook can check *that* something was written, never *what*, and it does nothing at all for the subagent form.
+
+## What fires it, and what it says
+
+Two decisions, routinely collapsed into one:
+
+**What wakes the agent.** Three shapes exist. A **schedule** — a crontab line, firing whether or not anything happened; this is what Imago supports and the rest of this document is about. An **event** — a file appeared, a message arrived, a branch was pushed; the agent runs *because something happened*. And **you**, opening a session.
+
+**Imago has no event triggers**, and that is worth stating plainly rather than leaving it to be discovered: the most satisfying automations in practice are event-shaped ("every time a recording lands in that folder…"), because they fire exactly when there is work and never when there is not. A schedule that checks for the same condition is an approximation that pays for every empty run. If you need the real thing, the trigger belongs outside Imago — a file watcher, a git hook, whatever your platform already has — and it invokes the same `claude -p` line.
+
+**What the prompt says**, which matters more than the interval. A standing order (*"review this project's setup"*) is the narrow form requirement 4 asks for. The open form is what requirement 4 makes conditional. Same mechanism, different agent — and the cost of getting it wrong lands on the schedule, run after run.
+
+**And nothing in a fleet fires anything else.** A chief of staff reads what the others wrote and asks the live ones for an update; it does not start them. See [fleet.md](fleet.md), which argues why — including the permission escalation you buy the moment an agent can run a command.
 
 ## Choosing a cadence
 

@@ -119,9 +119,17 @@ What actually distinguishes it is **breadth of context and shortness of turns**,
 and the second half is the load-bearing one. An agent's attention *is* its turn:
 a message arriving while it works is queued until its next turn or aborts it, and
 neither is conversation. **The agent you talk to cannot be the agent that
-works.** The chief stays reachable only because it delegates — which is also why
-the briefs it reads are capped at five lines, and why a specialist is extracted
-as soon as the chief has proven a task rather than kept in-house.
+works.** The chief stays reachable only because the work is elsewhere — which is
+also why the briefs it reads are capped at five lines, and why a specialist is
+extracted as soon as the chief has proven a task rather than kept in-house.
+
+Note what "elsewhere" does *not* mean. The chief does not start the specialists
+either: in both accounts it messages them and asks for updates, while what makes
+one run is its own schedule. That matters beyond fidelity to the source — an
+agent that can start a session is an agent that can hand a child more permission
+than it holds itself, which is the escalation the harness refuses between
+sessions and which a line in a prompt does not prevent. So the chief reads and
+asks; a schedule or the operator runs.
 
 So the position is real and worth occupying; the authority is not. In Claude Code
 your main session already occupies the position — it is the idle thing you talk
