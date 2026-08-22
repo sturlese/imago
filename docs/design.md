@@ -58,6 +58,13 @@ It does not replace them: a subagent gets no such hook, and a hook that blocks
 cannot itself decide *what* was worth writing. Treat it as a backstop under
 `deliverable`, not as a substitute for it.
 
+The hook blocks at most once, so a genuinely empty run can still end — and at
+that point the loss would be permanent *and* silent, which is the failure this
+whole document is about. So it records the empty run, and the `SessionStart` hook
+raises it at the agent's next start, once. **A read is where a missing write
+finally becomes visible**, which is the only place it can be: the run that
+skipped it is over, and nobody was watching it at 4am.
+
 ### The shape that is not allowed
 
 An agent whose real job is something else, with "and when you're finished, update your memory" appended. This is the default thing everyone writes, it appears to work in testing, and it is the one that loses data permanently in production — because when it fails, it fails silently, and the loss surfaces weeks later as an agent that seems to have learned nothing.
@@ -97,10 +104,40 @@ But that only works if the personality changes behaviour. "You are an enthusiast
 - **No retrieval layer.** No vector store, no embeddings, no search index. Memory is small on purpose; it is read whole, not queried.
 - **No skills.** Skills are shared and stateless, memory is private and stateful, and treating them as the same kind of thing is the mistake this repo is organised to avoid.
 - **No locking.** One writer per memory directory, by construction. Concurrency problems are avoided rather than solved.
-- **No orchestrator, no coordinator agent.** In the podcast the chief-of-staff sits above the fleet; in Claude Code your main session already occupies that position. A router agent adds a context hop and buys nothing.
+- **No orchestrator, and no chief with authority.** A router every instruction must pass through is a context hop that adds latency and loses fidelity. What Imago rejects is the chief's *authority*, not its *position* — see below.
+
+## A chief of staff is a latency architecture, not an org chart
+
+The practitioner accounts this repo draws on all describe a chief of staff at the
+head of the fleet, and the name invites the wrong build. Read carefully, the role
+is not defined by authority: in both accounts a specialist can do anything the
+chief can do, and specialists exist for **context hygiene and token cost** —
+"so the chief doesn't have to be an expert in everything". Both operators also
+bypass the chief whenever they want depth. It is a default channel, not a router.
+
+What actually distinguishes it is **breadth of context and shortness of turns**,
+and the second half is the load-bearing one. An agent's attention *is* its turn:
+a message arriving while it works is queued until its next turn or aborts it, and
+neither is conversation. **The agent you talk to cannot be the agent that
+works.** The chief stays reachable only because it delegates — which is also why
+the briefs it reads are capped at five lines, and why a specialist is extracted
+as soon as the chief has proven a task rather than kept in-house.
+
+So the position is real and worth occupying; the authority is not. In Claude Code
+your main session already occupies the position — it is the idle thing you talk
+to while scheduled agents run. What it lacks is memory, which is the one thing
+this repo exists to add. That is what `examples/chief.md` is: the position, with
+a memory, and without the authority. [fleet.md](fleet.md) has the mechanics.
+
+One consequence worth stating because it bites: under `deliverable` the run's
+only durable output is written at the end, so **interrupting an agent mid-run
+destroys what it learned** — the same silent loss as a skipped write, triggered
+by the operator instead of by the budget.
 
 ## Where to go next
 
 - The normative contract: [memory-spec.md](memory-spec.md)
 - Running with nobody watching: [proactivity.md](proactivity.md)
+- Running more than one: [fleet.md](fleet.md)
 - A complete agent, commented: [../examples/toby.md](../examples/toby.md)
+- A chief of staff: [../examples/chief.md](../examples/chief.md)

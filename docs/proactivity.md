@@ -92,6 +92,8 @@ The failure is not that the agent is being polite; it is that the harness has no
 
 Interactive agents report to you. Unattended agents report to nobody — nothing is reading stdout at 4am. If the run does not write a file, the run produced nothing. This is the same requirement as #1 seen from the other side, which is why `deliverable` fits scheduled agents so naturally: the durable output and the memory write are the same act.
 
+For an agent in a fleet that somewhere is named: `brief.md`, five lines, overwritten every run — see [fleet.md](fleet.md).
+
 ### 4. The mandate has to be narrow
 
 An open mandate plus a schedule burns budget producing nothing. "Look for anything interesting" is not a mandate. A schedulable agent has a specific trigger and a bounded job: *what* it looks at, *what* counts as a finding, and *when* to stop looking.
@@ -139,6 +141,10 @@ Two scripts ship in [`tools/hooks/`](../tools/hooks/): `imago-session-start.sh` 
 ```
 
 Both no-op unless the session is running as an agent that has a memory directory, so **ordinary sessions and non-Imago agents are unaffected** — the hook reads `agent_type` from the payload Claude Code provides. The Stop hook blocks at most once (it honours `stop_hook_active`), so a genuinely empty run ends on the second pass rather than hanging.
+
+Because it blocks only once, a genuinely empty run still ends — so on that second pass it records the fact, and the `SessionStart` hook raises it at the agent's next start, once. That is the only moment a skipped write can still reach anybody: the run that skipped it is over.
+
+The same `SessionStart` hook is what puts the agent's index, its occupancy percentage, any facts missing from the index, and its fleet's briefs into context before it starts. The occupancy is the part worth installing it for on its own: "consolidate above 80%" is not a rule an agent can evaluate without summing characters across a directory by hand.
 
 Treat it as a backstop under `deliverable`, not a replacement for it: a hook can check *that* something was written, never *what*, and it does nothing at all for the subagent form.
 

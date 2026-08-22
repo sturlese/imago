@@ -22,12 +22,17 @@ from pathlib import Path
 BUDGET = 12_000          # characters across an agent's memory directory
 THRESHOLD = 0.80         # consolidation threshold
 INDEX_MAX_LINES = 60
+BRIEF_MAX_LINES = 5      # a fleet brief: shipped / stuck / needs you, and a date
+# brief.md is a report, not a fact: written every run, read by another agent, no
+# frontmatter, and outside the budget that exists to force curation of facts.
+NOT_A_FACT = ("MEMORY.md", "brief.md")
 FACT_TYPES = ("lesson", "pattern", "rejected", "reference")
 SHAPES = ("deliverable", "caller")
 
 FRONTMATTER_RE = re.compile(r"\A---\r?\n(.*?)\r?\n---", re.S)
 COMMENT_RE = re.compile(r"<!--.*?-->", re.S)
 INDEX_LINK_RE = re.compile(r"^\s*-\s*\[[^\]]*\]\(([^)]+\.md)\)", re.M)
+DATE_RE = re.compile(r"\b\d{4}-\d{2}-\d{2}\b")
 SHAPE_RE = re.compile(r"^##\s*Memory shape:\s*`?(\w+)`?", re.M)
 MODE_RE = re.compile(r"^##\s*Operating mode\s*$(.*?)(?=^##\s|\Z)", re.M | re.S)
 # An instruction to *invoke* a skill, not a mention of skill files on disk.
@@ -118,7 +123,52 @@ def check_fact(path: Path, rel: str) -> None:
             "agent's own context, so this is an instruction it would keep giving itself")
 
 
-def check_memory(memory_dir: Path, name: str) -> None:
+def check_brief(memory_dir: Path, rel: str) -> None:
+    """A fleet brief is five lines a chief can read cheaply, or it is not a brief.
+
+    Not an error when absent: most agents are not in a fleet, and the ones that
+    are get a warning rather than a failure because a missing brief is a fact
+    about the last run, not a defect in the definition.
+    """
+    brief = memory_dir / "brief.md"
+    if not brief.exists():
+        return
+    lines = [l for l in brief.read_text(encoding="utf-8", errors="replace").splitlines() if l.strip()]
+    where = f"{rel}/brief.md"
+    if not lines:
+        add("warn", "brief", where, "empty — a specialist that reported nothing has not reported")
+        return
+    if len(lines) > BRIEF_MAX_LINES:
+        add("warn", "brief", where,
+            f"{len(lines)} lines (max {BRIEF_MAX_LINES}) — a chief reads n briefs, so a long one "
+            "costs the fleet what it was meant to save")
+    if not DATE_RE.search(lines[0]):
+        add("warn", "brief", where,
+            "first line carries no YYYY-MM-DD date — a brief with no date cannot be told from a stale one")
+    if FRONTMATTER_RE.match(brief.read_text(encoding="utf-8", errors="replace")):
+        add("warn", "brief", where, "has frontmatter — a brief is a report, not a fact")
+
+
+def check_fleet(memory_root: Path, memory_dir: Path, name: str, rel: str) -> None:
+    """The chief's list of who reports to it. Every name must be an agent with a memory."""
+    fleet = memory_dir / "fleet"
+    if not fleet.exists():
+        return
+    where = f"{rel}/fleet"
+    members = [l.strip() for l in fleet.read_text(encoding="utf-8", errors="replace").splitlines()]
+    members = [m for m in members if m and not m.startswith("#")]
+    if not members:
+        add("warn", "fleet", where, "lists nobody — delete it, or name the specialists that report here")
+    for member in members:
+        if member == name:
+            add("error", "fleet", where, f"lists itself — a chief cannot be its own specialist")
+        elif not (memory_root / member).is_dir():
+            add("error", "fleet", where,
+                f"lists '{member}', which has no memory at {memory_root / member} — "
+                "the chief will read a brief that never arrives")
+
+
+def check_memory(memory_dir: Path, name: str, memory_root: Path) -> None:
     rel = f"memory/{name}"
 
     if not memory_dir.is_dir():
@@ -127,7 +177,7 @@ def check_memory(memory_dir: Path, name: str) -> None:
         return
 
     index = memory_dir / "MEMORY.md"
-    facts = sorted(p for p in memory_dir.glob("*.md") if p.name != "MEMORY.md")
+    facts = sorted(p for p in memory_dir.glob("*.md") if p.name not in NOT_A_FACT)
 
     if not index.exists():
         add("error", "missing_index", f"{rel}/MEMORY.md", "no index — facts not listed in it will not be found again")
@@ -149,7 +199,12 @@ def check_memory(memory_dir: Path, name: str) -> None:
     for fact in facts:
         check_fact(fact, f"{rel}/{fact.name}")
 
-    total = sum(p.stat().st_size for p in memory_dir.glob("*.md"))
+    check_brief(memory_dir, rel)
+    check_fleet(memory_root, memory_dir, name, rel)
+
+    # brief.md is deliberately outside the budget: it is overwritten every run and
+    # is not what the budget exists to ration.
+    total = sum(p.stat().st_size for p in memory_dir.glob("*.md") if p.name != "brief.md")
     pct = total / BUDGET
     if pct >= 1.0:
         add("error", "budget", rel, f"{total} chars, over the {BUDGET} budget — consolidate before the next run")
@@ -204,7 +259,7 @@ def check_agent(path: Path, memory_root: Path) -> str | None:
         add("warn", "tools", rel,
             "body tells the agent to use a skill but 'Skill' is not in its tools list — it cannot invoke any")
 
-    check_memory(memory_root / name, name)
+    check_memory(memory_root / name, name, memory_root)
     return name
 
 

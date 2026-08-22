@@ -9,7 +9,8 @@ Normative. This is the contract an Imago agent's memory satisfies, and what `too
 ~/.imago/<name>/                    the agent's memory
 ├── MEMORY.md                       index — one line per fact
 ├── <fact-slug>.md                  one fact per file
-└── ...
+├── brief.md                        optional — what this agent last reported
+└── fleet                           optional — specialists that report to it
 ```
 
 Two trees, on purpose. Definitions have to live in `~/.claude/agents/` because that is where Claude Code looks for them. Memory lives elsewhere because an agent can only write to a directory it has been granted, and **granting `~/.claude` would hand it its own configuration, every other agent's definition, and your settings**. `~/.imago` is a narrow grant that gives it exactly what it needs.
@@ -88,11 +89,29 @@ check for a period before investigating anything else.
 
 Link between facts with `[[other-fact-slug]]`.
 
+## Two files that are not facts
+
+`brief.md` and `fleet` exist only for agents that run as a fleet
+([fleet.md](fleet.md)) and are deliberately outside everything above:
+
+| | `brief.md` | `fleet` |
+|---|---|---|
+| What | at most five lines: the date, what shipped, what is stuck, what needs the operator | one specialist name per line, `#` for comments |
+| Written by | the agent itself, overwritten every run | you, or `new-agent --fleet` |
+| Read by | its chief of staff | its own agent, at session start |
+| Frontmatter | none — it is a report, not a fact | n/a |
+| In `MEMORY.md`? | no | no |
+| In the budget? | **no** | no |
+
+A brief is what the agent *reported*; facts are what it *learned*. Keeping the
+brief outside the budget is the point: the budget exists to force curation of
+facts, and a report overwritten every run has nothing to curate.
+
 ## Budget
 
 | | Default | Meaning |
 |---|---|---|
-| Total | **12,000 characters** across the whole memory directory | Roughly 3,000 tokens — read whole, every run |
+| Total | **12,000 characters** across the whole memory directory, `brief.md` excluded | Roughly 3,000 tokens — read whole, every run |
 | Consolidation threshold | **80%** (9,600 characters) | Above this, consolidating is part of the run |
 | Index | 60 lines | |
 

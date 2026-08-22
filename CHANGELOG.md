@@ -5,6 +5,30 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- `examples/chief.md` — a second worked agent: a chief of staff that reads its
+  specialists' briefs, dispatches them as background sessions, and holds the
+  fleet's own memory
+- `docs/fleet.md` — running more than one agent: the brief, the `fleet` file,
+  dispatch as a process rather than a subagent, cost, and what it deliberately
+  does not do
+- The `SessionStart` hook now injects the agent's index, **how full its memory
+  is as a percentage**, facts missing from the index, and the fleet's briefs.
+  "Consolidate above 80%" was previously a rule no agent could evaluate
+- `brief.md` — five lines, overwritten every run, outside the memory budget:
+  what an agent reports to its chief
+- `tools/new-agent --fleet a,b` writes the `fleet` file
+- `tools/check` verifies the brief contract and the `fleet` file
+
+### Changed
+- The `Stop` hook now records a run that ended without writing anything, and the
+  `SessionStart` hook raises it once at the next run. A skipped write was
+  previously permanent *and* silent
+- The non-goal "no coordinator agent" is now stated as what it always meant: the
+  chief's *authority* is rejected, its *position* is not
+
 ## [0.1.1] - 2026-08-22
 
 ### Changed
