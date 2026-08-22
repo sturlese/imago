@@ -6,7 +6,8 @@
 # hook reads it instead, and hands the agent four things it cannot work out for
 # itself:
 #
-#   1. the index, verbatim, so the read is guaranteed rather than requested;
+#   1. its standing rules and then the index, verbatim, so the read is guaranteed
+#      rather than requested;
 #   2. how full the memory is, as a percentage — "consolidate above 80%" is not a
 #      rule the model can evaluate without summing characters across a directory;
 #   3. facts on disk that are missing from the index, which would otherwise never
@@ -58,7 +59,7 @@ except ValueError:
 
 # brief.md is a report, not a fact: it is written every run, read by another
 # agent, and would otherwise spend the budget that exists to force curation.
-NOT_A_FACT = {"MEMORY.md", "brief.md"}
+NOT_A_FACT = {"MEMORY.md", "brief.md", "standing.md"}
 
 
 def read(path):
@@ -93,6 +94,15 @@ if when is not None:
         os.remove(marker)
     except OSError:
         pass
+
+# --- standing rules: settled, always on, subordinate to the definition -------
+standing = read(os.path.join(mem, "standing.md"))
+if standing and standing.strip():
+    parts.append(
+        "STANDING RULES — lessons that graduated out of your memory because they kept\n"
+        "holding. These are not facts to weigh: they apply. Where one conflicts with\n"
+        "your definition, your definition wins and the rule is wrong — say so.\n\n"
+        + standing.strip())
 
 # --- the index, and how full it is ------------------------------------------
 index = read(os.path.join(mem, "MEMORY.md"))

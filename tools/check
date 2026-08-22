@@ -26,7 +26,8 @@ BRIEF_MAX_LINES = 5      # a fleet brief: shipped / stuck / needs you, and a dat
 GRADUATE_AT = 3          # confirmations that earn a lesson a place in the definition
 # brief.md is a report, not a fact: written every run, read by another agent, no
 # frontmatter, and outside the budget that exists to force curation of facts.
-NOT_A_FACT = ("MEMORY.md", "brief.md")
+NOT_A_FACT = ("MEMORY.md", "brief.md", "standing.md")
+STANDING_MAX = 12        # graduated rules; more than this is a definition, not a memory
 FACT_TYPES = ("lesson", "pattern", "rejected", "reference")
 SHAPES = ("deliverable", "caller")
 
@@ -115,8 +116,8 @@ def check_fact(path: Path, rel: str) -> None:
         dates = re.findall(r"\d{4}-\d{2}-\d{2}", raw)
         if len(dates) >= GRADUATE_AT:
             add("warn", "graduate", rel,
-                f"{len(dates)} confirmations — this lesson has earned a dated line in the agent's "
-                "'## Standing rules' and should then be deleted from here (docs/memory-spec.md)")
+                f"{len(dates)} confirmations — this lesson has earned a dated line in "
+                "standing.md and should then be deleted from here (docs/memory-spec.md)")
 
     if fm.get("type") == "rejected" and "**" not in text.split("---", 2)[-1]:
         add("warn", "rejected_shape", rel, "rejected fact should record when it was proposed and the reason given")
@@ -159,6 +160,42 @@ def check_brief(memory_dir: Path, rel: str) -> None:
             "first line carries no YYYY-MM-DD date — a brief with no date cannot be told from a stale one")
     if FRONTMATTER_RE.match(brief.read_text(encoding="utf-8", errors="replace")):
         add("warn", "brief", where, "has frontmatter — a brief is a report, not a fact")
+
+
+def check_standing(memory_dir: Path, rel: str) -> None:
+    """Graduated lessons: injected verbatim every run, so held to a higher bar than a fact.
+
+    Not a fact and not frontmattered — a rule that applies, one dated line each.
+    """
+    standing = memory_dir / "standing.md"
+    if not standing.exists():
+        return
+    text = standing.read_text(encoding="utf-8", errors="replace")
+    where = f"{rel}/standing.md"
+
+    if FRONTMATTER_RE.match(text):
+        add("warn", "standing", where, "has frontmatter — a graduated rule is prose, not a fact")
+
+    rules = [l for l in text.splitlines() if l.strip().startswith("-")]
+    for rule in rules:
+        if not DATE_RE.search(rule):
+            add("warn", "standing", where,
+                f"rule carries no date ({rule.strip()[:44]}...) — nothing prompts a review of a "
+                "graduated rule, so it has to say when it earned its place")
+    if len(rules) > STANDING_MAX:
+        add("warn", "standing", where,
+            f"{len(rules)} standing rules (soft max {STANDING_MAX}) — these are injected in full "
+            "every run; past a point you have written a second definition")
+
+    # Held to the same bar as a fact, and for the stronger reason: this text is
+    # injected verbatim rather than opened on judgement.
+    if m := SECRET_RE.search(text):
+        add("error", "secret", where,
+            f"looks like a credential ({m.group(1)[:8]}...) — this file is replayed into every run")
+    if m := INJECTION_RE.search(text):
+        add("error", "injection", where,
+            f"reads as an instruction from elsewhere ({m.group(0)[:40]!r}) — a graduated rule is "
+            "the agent's own conclusion, never text it copied out of something it read")
 
 
 def check_fleet(memory_root: Path, memory_dir: Path, name: str, rel: str) -> None:
@@ -212,11 +249,13 @@ def check_memory(memory_dir: Path, name: str, memory_root: Path) -> None:
         check_fact(fact, f"{rel}/{fact.name}")
 
     check_brief(memory_dir, rel)
+    check_standing(memory_dir, rel)
     check_fleet(memory_root, memory_dir, name, rel)
 
     # brief.md is deliberately outside the budget: it is overwritten every run and
     # is not what the budget exists to ration.
-    total = sum(p.stat().st_size for p in memory_dir.glob("*.md") if p.name != "brief.md")
+    total = sum(p.stat().st_size for p in memory_dir.glob("*.md")
+                if p.name not in ("brief.md", "standing.md"))
     pct = total / BUDGET
     if pct >= 1.0:
         add("error", "budget", rel, f"{total} chars, over the {BUDGET} budget — consolidate before the next run")
