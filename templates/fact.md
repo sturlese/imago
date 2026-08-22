@@ -3,6 +3,7 @@ name: {{SLUG}}
 description: One line. This is what goes in the MEMORY.md hook, so it has to be enough to rule the fact in or out without opening it.
 type: lesson
 created: {{DATE}}
+confirmations: []
 ---
 
 <The fact itself, stated as a durable claim rather than a report of an event.
@@ -21,6 +22,12 @@ type: one of
   pattern   — a recurring observation; list the occurrences with dates
   rejected  — something proposed and turned down; record WHEN and the REASON given
   reference — a pointer to something external; what it is and when to reach for it
+
+`confirmations:` applies to a `lesson` only — a list of dates on which the lesson
+held again. Add today's date when you meet it once more; do not add one for the
+run that first recorded it. At three, the lesson has earned promotion into the
+definition's Standing rules and should stop living here. The operator makes that
+edit — see docs/memory-spec.md, graduation.
 
 Add `superseded_by: <slug>` when a newer fact replaces this one but keeping the
 old one is still useful. Never leave two facts disagreeing without it.

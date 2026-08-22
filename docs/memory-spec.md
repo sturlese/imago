@@ -71,12 +71,13 @@ check for a period before investigating anything else.
 | `type` | yes | one of the four below |
 | `created` | yes | `YYYY-MM-DD` |
 | `superseded_by` | no | slug of the fact that replaced this one, when keeping the old one is useful |
+| `confirmations` | no | `lesson` only — dates on which the lesson held again. Three earns graduation |
 
 ### Types
 
 | Type | For | Body shape |
 |---|---|---|
-| `lesson` | Something learned that should change future behaviour | Statement, then **Why:** and **How to apply:** |
+| `lesson` | Something learned that should change future behaviour | Statement, then **Why:** and **How to apply:** — and the only type that can graduate |
 | `pattern` | A recurring observation, with occurrences | Statement, then the occurrences with dates |
 | `rejected` | Something the agent proposed that was turned down | What was proposed, when, and the reason given |
 | `reference` | A pointer to something external | What it is and when it is worth reaching for |
@@ -106,6 +107,58 @@ Link between facts with `[[other-fact-slug]]`.
 A brief is what the agent *reported*; facts are what it *learned*. Keeping the
 brief outside the budget is the point: the budget exists to force curation of
 facts, and a report overwritten every run has nothing to curate.
+
+## Graduation — the other way out of memory
+
+Consolidation is not the only exit. A `lesson` that keeps proving itself should
+stop being remembered and start being **structural**: promoted out of the memory
+directory into a `## Standing rules` section in the agent's own definition, one
+dated line each.
+
+The difference is not filing. In memory, a lesson is text the agent has to
+notice, judge relevant, and re-apply — competing for attention with everything
+else it holds, and paying that judgement again on every run, with a real chance
+of getting it wrong once. In the definition it is prompt: always present, never
+optional, no longer a call the agent makes.
+
+**Two paths, and the pair is the point:**
+
+- **Three confirmations.** Each time the lesson holds again, the agent appends
+  today's date to `confirmations:`. At three, it has earned promotion — the
+  lesson recurs, so it is a property of the work rather than of one bad day.
+- **One sign-off.** The operator says so once. Evidence-only would mean every
+  standing rule costs three incidents; authority-only would mean the memory never
+  teaches the operator anything.
+
+**Graduation is a move, not a copy.** The fact is deleted and `MEMORY.md` rebuilt
+in the same run. A bounded memory that also keeps everything it has settled is
+not bounded, and the index should hold open questions rather than closed ones.
+
+### The operator makes the edit, and the agent may not
+
+The definition lives in `~/.claude/agents/`, which no Imago agent is granted —
+that is the whole reason memory lives in a separate tree. Graduation therefore
+ends with the agent **proposing** and a human editing.
+
+That is not a limitation to route around; it is the point. **An agent that can
+rewrite its own definition can rewrite its own refusals**, and refusals are the
+field the whole personality rests on. A capability like that cannot be walked
+back by a rule, because the rule is in the file it can edit. It is deliberately
+absent rather than forbidden — the same reason the chief of staff ships without a
+shell ([fleet.md](fleet.md)).
+
+So the agent says, in its output: *this lesson has held three times; it belongs in
+my standing rules.* `tools/check` reports the same thing, so the queue is visible
+without reading anything. You paste the line, dated, and delete the fact.
+
+### What it costs
+
+A graduated rule is hard to notice and hard to unlearn. It has left the memory
+directory, so nothing prompts a review of it, and a wrong one becomes an
+invisible standing instruction. Two mitigations, both cheap: every standing rule
+carries **the date it graduated**, and the definition belongs in version control.
+When one turns out to be wrong, delete the line — do not write a fact that argues
+against it.
 
 ## Budget
 
