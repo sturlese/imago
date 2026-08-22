@@ -147,7 +147,7 @@ Two agents that never read each other are two agents. A fleet is three conventio
 
 - **The brief.** Each agent ends its run writing `~/.imago/<name>/brief.md` — at most five lines: the date, what shipped, what is stuck, what needs you. Overwritten every run. It is a report, not a fact: no frontmatter, not in the index, outside the budget.
 - **The chief of staff.** One agent holds the whole picture, reads the others' briefs, and is the one you talk to. `~/.imago/chief/fleet` lists who reports to it. A second worked example ships as [`examples/chief.md`](examples/chief.md).
-- **Dispatch is a process, not a subagent.** The chief launches a specialist as its own background session, because a subagent gets no hooks and nothing verifies that it wrote anything.
+- **Nothing in the fleet starts anything else.** A specialist is woken by its schedule or by you; the chief reads what it wrote and asks the live ones for an update. That is what the working fleets actually do — and an agent that can start a session is an agent that can grant a child more permission than it has.
 
 ```bash
 tools/new-agent --from-example chief
@@ -205,7 +205,7 @@ Agents intended to run unattended declare it in an `## Operating mode` section, 
 | [docs/design.md](docs/design.md) | Why agents read memory reliably and write it unreliably, and the two shapes that fix it |
 | [docs/memory-spec.md](docs/memory-spec.md) | The memory contract: layout, fact types, budget, consolidation |
 | [docs/proactivity.md](docs/proactivity.md) | What changes when an agent runs with nobody watching |
-| [docs/fleet.md](docs/fleet.md) | Running more than one: briefs, the chief of staff, dispatch |
+| [docs/fleet.md](docs/fleet.md) | Running more than one: briefs, the chief of staff, what starts what |
 | [templates/agent.md](templates/agent.md) | The agent skeleton |
 | [examples/toby.md](examples/toby.md) | A complete worked agent, commented |
 | [examples/chief.md](examples/chief.md) | A chief of staff for a fleet |

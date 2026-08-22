@@ -22,10 +22,10 @@ generic, with nothing specific to the user's projects, employer or clients.
 docs/design.md         why the write path is the hard problem — the repo's thesis
 docs/memory-spec.md    normative memory contract; what tools/check verifies
 docs/proactivity.md    what changes when an agent runs unattended
-docs/fleet.md          running more than one: briefs, the chief, dispatch
+docs/fleet.md          running more than one: briefs, the chief, what starts what
 templates/             agent.md, fact.md, MEMORY.md — scaffolding sources
 examples/toby.md       one complete worked agent, deliberately generic
-examples/chief.md      a chief of staff: reads briefs, dispatches, holds the picture
+examples/chief.md      a chief of staff: reads briefs, holds the picture, starts nothing
 tools/new-agent        scaffolds definition + memory; refuses to write in the repo
 tools/check            verifies an installed fleet against the spec
 ```

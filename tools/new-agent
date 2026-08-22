@@ -182,8 +182,8 @@ def main() -> int:
 
     if fleet:
         print("Each specialist writes brief.md in its own memory directory; this agent")
-        print("reads them. See docs/fleet.md — and note it needs Bash in its tools to")
-        print("dispatch, which the blank template does not grant.")
+        print("reads them at session start. It does not start them — a schedule or you")
+        print("does that. See docs/fleet.md.")
         print()
 
     if not args.from_example:

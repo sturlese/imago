@@ -5,6 +5,29 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.1.3] - 2026-08-22
+
+### Changed
+- **The chief of staff no longer starts anything, and ships without `Bash`.**
+  v0.1.2 had it dispatch specialists as background sessions. Re-reading the
+  practitioner accounts the design comes from, that is not what a chief does:
+  it *messages* the others and asks for updates, while what makes a specialist
+  run is its own schedule. It is also the safer shape — an agent that can run a
+  command can hand a child more permission than it holds itself, which is the
+  escalation the harness refuses between sessions and which a rule in a prompt
+  does not prevent
+- **The narrow-mandate requirement is now stated as conditional**, because it is
+  a consequence rather than a principle: an open mandate is exactly as good as
+  the context underneath it. Keep it narrow while the context is a memory
+  directory; widen it in step with what the agent can actually read
+
+### Added
+- `proactivity.md` separates **what wakes an agent** (schedule, event, you) from
+  **what its prompt says**, and states plainly that Imago has **no event
+  triggers** — a gap, not a decision. The most useful automations in practice
+  are event-shaped, and a schedule that polls for the same condition pays for
+  every empty run
+
 ## [0.1.2] - 2026-08-22
 
 ### Added
