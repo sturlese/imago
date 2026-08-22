@@ -183,6 +183,31 @@ The template asks for four things. Vagueness in any of them produces an agent th
 
 **Refusals are the field that matters and the one people skip.** A personality without a *no* is a costume. An agent whose job is to demand ambition must be forbidden from approving, or it drifts into another voice telling you nice work. Toby's refusal is that he never proposes fixes — he only reports — which is what keeps his output trustworthy and his scope small.
 
+### Autonomy, in three lines
+
+A section every definition carries, because an agent whose limits are implicit has none:
+
+| Line | The question |
+|---|---|
+| **Without asking** | What does it do and report afterwards? |
+| **Never** | What does it not do at all? |
+| **Escalate** | When does it stop and ask instead of deciding? |
+
+**Prefer removing the tool over writing the rule.** A capability that was never granted has no rule to forget, cannot be argued out of the agent, and cannot be inherited by something it starts. The `Never` line is for what a tool list cannot express.
+
+The mandate also opens by answering **what breaks if this agent never runs** — an agent whose absence breaks nothing should not exist, and that line is there to force the question before you build it.
+
+### Lessons graduate out of memory
+
+Consolidation is not the only exit. A `lesson` that keeps proving itself is **promoted into the definition** as a dated line under `## Standing rules`, and deleted from memory:
+
+- **three confirmations** — the agent appends a date each time the lesson holds again; or
+- **one sign-off** — you say so once.
+
+The difference is not filing. In memory a lesson is text the agent has to notice, judge relevant and re-apply every run. In the definition it is what the agent *is*. An agent that accumulates notes gets bigger; an agent whose lessons graduate gets better.
+
+`tools/check` reports which lessons have earned it. **You make the edit** — an agent that can rewrite its own definition can rewrite its own refusals, so that is a tool never installed rather than a permission withheld.
+
 ### Memory, in one of two shapes
 
 Every agent with memory declares how the write happens. There is no third option, and in particular there is no "do your job and also update your memory at the end" — that is the shape that silently loses everything:

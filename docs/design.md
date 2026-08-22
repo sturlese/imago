@@ -77,6 +77,34 @@ A tight budget forces the agent to decide what earns a place, and that decision 
 
 One behavioural consequence worth knowing: an agent's memory is read into context at the start of its run. **Writes it makes during that run do not change what it is currently working from.** They land for next time. An agent that writes a fact and then reasons as though it can read it back is reasoning about a file it cannot see.
 
+### The exit that is not consolidation
+
+Consolidation is lossy by design — merge, compress, delete — and it is the only
+way anything leaves a bounded memory. That leaves a gap: a lesson that has proved
+itself repeatedly is *settled*, and settled knowledge in a memory directory is in
+the wrong place. It still spends budget, and worse, it is still something the
+agent must notice, judge relevant and re-apply on every run.
+
+So there is a second exit. A `lesson` confirmed three times, or signed off once
+by the operator, **graduates into the agent's definition** as a dated standing
+rule, and is deleted from memory ([memory-spec.md](memory-spec.md)).
+
+This is the repo's own principle applied one level up. Memory is read and
+interpreted — unreliable in exactly the way the write path is unreliable, only
+quieter, because a lesson that gets skipped produces a slightly worse run rather
+than a visible error. A standing rule is not interpreted; it is what the agent
+is. **Move it before, or move it into code** reads here as *move it out of memory
+and into the definition.*
+
+It also names the honest difference between two things that look alike: an agent
+accumulating notes gets **bigger**; an agent whose lessons graduate gets
+**better**.
+
+One capability is deliberately absent from this. The agent proposes; a human
+edits the file. An agent that can rewrite its own definition can rewrite its own
+refusals — and refusals are the field everything else rests on, so that is not a
+permission to withhold carefully, it is a tool never to install.
+
 ### Why bounded, and not a dated journal
 
 The obvious alternative is to append: one file per day, never decide anything at write time, compact later. It is a tempting design because writing becomes free.

@@ -5,6 +5,30 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.1.4] - 2026-08-22
+
+### Added
+- **Graduation — the second exit from memory.** A `lesson` confirmed three times
+  (a new `confirmations:` field) or signed off once by the operator is promoted
+  into the definition's new `## Standing rules` section as a dated line, and
+  deleted from memory. In memory a lesson is text the agent must notice, judge
+  relevant and re-apply every run; in the definition it is what the agent *is*.
+  `tools/check` reports which lessons have earned it
+- **`## Autonomy`** in every definition: what it does without asking, what it
+  never does, and when it escalates — with the standing preference for removing
+  the tool over writing the rule, since a capability never granted has no rule to
+  forget
+- **"What breaks if you do not run"** as the opening line of a mandate. An agent
+  whose absence breaks nothing should not exist, and this is where that question
+  gets asked before the agent is built
+- `tools/check` warns on a missing `## Autonomy`, a mandate that never says what
+  breaks, and a standing rule with no date
+
+### Changed
+- The operator, not the agent, edits the definition. An agent that can rewrite
+  its own definition can rewrite its own refusals, so that capability is
+  deliberately absent rather than withheld
+
 ## [0.1.3] - 2026-08-22
 
 ### Changed

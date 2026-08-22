@@ -62,6 +62,13 @@ follows from that:
   an agent can evaluate by itself.
 - Personality is four fields — disposition, voice, refusals, bar — and
   **refusals** is the load-bearing one. A personality without a `no` is a costume.
+- Limits belong in the tool list before they belong in prose: a capability never
+  granted has no rule to forget. The `Never` line of `## Autonomy` is only for
+  what a tool list cannot express.
+- Lessons **graduate**: confirmed three times or signed off once, a `lesson`
+  moves out of memory into the definition's `## Standing rules`, dated, and is
+  deleted from memory. The operator makes that edit — an agent that could
+  rewrite its own definition could rewrite its own refusals.
 - Skills are shared and stateless; memory is private and stateful. Imago ships no
   skills.
 

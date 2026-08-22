@@ -23,6 +23,7 @@ BUDGET = 12_000          # characters across an agent's memory directory
 THRESHOLD = 0.80         # consolidation threshold
 INDEX_MAX_LINES = 60
 BRIEF_MAX_LINES = 5      # a fleet brief: shipped / stuck / needs you, and a date
+GRADUATE_AT = 3          # confirmations that earn a lesson a place in the definition
 # brief.md is a report, not a fact: written every run, read by another agent, no
 # frontmatter, and outside the budget that exists to force curation of facts.
 NOT_A_FACT = ("MEMORY.md", "brief.md")
@@ -34,6 +35,9 @@ COMMENT_RE = re.compile(r"<!--.*?-->", re.S)
 INDEX_LINK_RE = re.compile(r"^\s*-\s*\[[^\]]*\]\(([^)]+\.md)\)", re.M)
 DATE_RE = re.compile(r"\b\d{4}-\d{2}-\d{2}\b")
 SHAPE_RE = re.compile(r"^##\s*Memory shape:\s*`?(\w+)`?", re.M)
+AUTONOMY_RE = re.compile(r"^##\s*Autonomy\s*$(.*?)(?=^##\s|\Z)", re.M | re.S)
+STANDING_RE = re.compile(r"^##\s*Standing rules\s*$(.*?)(?=^##\s|\Z)", re.M | re.S)
+BREAKS_RE = re.compile(r"what breaks if", re.I)
 MODE_RE = re.compile(r"^##\s*Operating mode\s*$(.*?)(?=^##\s|\Z)", re.M | re.S)
 # An instruction to *invoke* a skill, not a mention of skill files on disk.
 SKILL_USE_RE = re.compile(r"\b(invoke|call|run|use)\b[^.\n]{0,40}\bskills?\b(?!\s*/)", re.I)
@@ -105,6 +109,14 @@ def check_fact(path: Path, rel: str) -> None:
         for marker in ("**Why:**", "**How to apply:**"):
             if marker not in text:
                 add("warn", "lesson_shape", rel, f"lesson without {marker} — a fact with no application rule is trivia")
+
+    if fm.get("type") == "lesson":
+        raw = fm.get("confirmations", "")
+        dates = re.findall(r"\d{4}-\d{2}-\d{2}", raw)
+        if len(dates) >= GRADUATE_AT:
+            add("warn", "graduate", rel,
+                f"{len(dates)} confirmations — this lesson has earned a dated line in the agent's "
+                "'## Standing rules' and should then be deleted from here (docs/memory-spec.md)")
 
     if fm.get("type") == "rejected" and "**" not in text.split("---", 2)[-1]:
         add("warn", "rejected_shape", rel, "rejected fact should record when it was proposed and the reason given")
@@ -253,6 +265,22 @@ def check_agent(path: Path, memory_root: Path) -> str | None:
             if not re.search(r"do not ask|nobody can answer|no questions", body, re.I):
                 add("warn", "unattended", rel,
                     "unattended agent not told that nobody can answer it — a question will block the whole run")
+
+    if not AUTONOMY_RE.search(text):
+        add("warn", "autonomy", rel,
+            "no '## Autonomy' section — say what it does without asking, what it never does, and "
+            "when it escalates. An agent whose limits are implicit has none")
+    if not BREAKS_RE.search(text):
+        add("warn", "mandate", rel,
+            "the mandate does not say what breaks if this agent never runs — if nothing does, "
+            "the agent should not exist")
+    if (m := STANDING_RE.search(text)) and (rules := [
+            l for l in m.group(1).splitlines() if l.strip().startswith("-")]):
+        for rule in rules:
+            if not re.search(r"\d{4}-\d{2}-\d{2}", rule):
+                add("warn", "standing_rule", rel,
+                    f"standing rule carries no date ({rule.strip()[:44]}...) — a graduated rule "
+                    "nothing prompts you to review needs to say when it earned its place")
 
     body = text.split("---", 2)[-1]
     if SKILL_USE_RE.search(body) and (tools := fm.get("tools")) and "Skill" not in tools:
