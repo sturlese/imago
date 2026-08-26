@@ -28,13 +28,62 @@ Every part of that line is load-bearing:
 
 Once that command works from your shell, it needs a scheduler to fire it. Two of them actually run locally — a cloud one does not.
 
-**Your operating system's cron is the plainest of the two.** On macOS or Linux that is `crontab -e`:
+**Your operating system's own scheduler is the plainest of the two.** On Linux that is `crontab -e`:
 
 ```cron
 0 9 * * 1  cd /path/to/project && echo "Review this project's Claude Code setup." | /usr/local/bin/claude -p --agent toby --allowedTools Write Edit --add-dir ~/.imago >> ~/.imago/toby.log 2>&1
 ```
 
-Use absolute paths for `claude` — cron's `PATH` is minimal — and redirect the output somewhere, since nothing is attached to read it.
+Use absolute paths for `claude` — cron's `PATH` is minimal, and on many installs the CLI lives in `~/.local/bin`, which is not on it — and redirect the output somewhere, since nothing is attached to read it.
+
+### On macOS, cron does not work at all — use a LaunchAgent
+
+This is not a preference. **A cron job cannot log in.**
+
+The subscription credentials live in the macOS login keychain, and a cron job runs in a security session that cannot open it. Every scheduled run exits `1` a few seconds in with:
+
+```
+Anthropic profile login expired · Run /login to use your claude.ai account instead
+```
+
+No `PATH`, `USER`, `LOGNAME` or `--permission-mode` setting changes this, and neither does the keychain being unlocked. The job simply is not in a session allowed to ask for it.
+
+**The trap is that this does not reproduce the obvious way.** Running the same command under `env -i` with a stripped environment succeeds, because a stripped *environment* is not a different *security session*. Testing the environment proves nothing about the case that matters, so **the only test that counts is firing it the way it will actually fire.**
+
+A per-user LaunchAgent runs inside the GUI login session, where the keychain is reachable. `~/Library/LaunchAgents/<label>.plist`:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.example.toby</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/path/to/run-toby.sh</string>
+  </array>
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Weekday</key><integer>1</integer>
+    <key>Hour</key><integer>9</integer>
+    <key>Minute</key><integer>0</integer>
+  </dict>
+  <key>RunAtLoad</key><false/>
+  <key>StandardErrorPath</key><string>/Users/you/.imago/toby.launchd.log</string>
+  <key>ProcessType</key><string>Background</string>
+</dict>
+</plist>
+```
+
+```bash
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.example.toby.plist
+launchctl kickstart -k gui/$(id -u)/com.example.toby   # fire it now, the way it will fire
+launchctl list com.example.toby                        # LastExitStatus
+```
+
+Put the `claude` line in a small script rather than in `ProgramArguments`: the flags are variadic and the prompt has to reach stdin, which a plist argument list makes awkward. That script is also the natural place to resolve the CLI's absolute path and to fail loudly when it cannot be found, rather than letting a scheduled run quietly accomplish nothing.
+
+Two things follow beyond the fix, and both matter on a laptop. **`StartCalendarInterval` runs a job missed while the machine was asleep, when it wakes** — cron skips it silently, which for a nightly agent means the night simply did not happen. And a LaunchAgent survives a reboot without anything staying open.
 
 **Claude Code Desktop's local scheduled tasks are the other.** A task created from the Routines page (or by asking a Desktop session to "set up a daily review at 9am") runs on your machine, persists across restarts, and fires a fresh session as often as once a minute — no shell, no crontab. Its prompt lives in `~/.claude/scheduled-tasks/<task-name>/SKILL.md`; schedule, working folder, model and permission mode are set through the Edit form. It only fires while the Desktop app is open and the machine is awake, and a missed run gets one catch-up on wake rather than a backlog.
 
