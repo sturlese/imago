@@ -84,7 +84,7 @@ Three things wake an agent, and the chief is none of them:
 
 | | What it is | Imago has it |
 |---|---|---|
-| **A schedule** | a crontab line, fired whether or not anything happened | yes — [proactivity.md](proactivity.md) |
+| **A schedule** | a cron line, or a LaunchAgent on macOS, fired whether or not anything happened | yes — [proactivity.md](proactivity.md) |
 | **An event** | something appeared: a file, a message, a commit | **no** — see below |
 | **You** | `claude --agent scout --add-dir ~/.imago` | yes |
 
@@ -141,8 +141,11 @@ triggered by you instead of by the budget.
 
 ## Scheduling
 
-Cron, as always — [proactivity.md](proactivity.md) has the full argument. A
-specialist gets a crontab line; the chief does not, because you are its trigger.
+The operating system's own scheduler, as always — [proactivity.md](proactivity.md)
+has the full argument, including why **on macOS that has to be a LaunchAgent and
+not cron**: a cron job runs in a security session that cannot open the login
+keychain, so every run exits 1 on an expired login. A specialist gets a schedule
+entry; the chief does not, because you are its trigger.
 
 **What the line says matters more than how often it fires.** A schedule decides
 *when* an agent wakes; the prompt decides whether it is an errand-runner or a
@@ -157,6 +160,11 @@ narrow form, and that section says what the requirement is contingent on.
 ```cron
 0 9 * * 1  cd /path/to/project && echo "Review this project's setup." | /usr/local/bin/claude -p --agent scout --allowedTools Write Edit --add-dir ~/.imago >> ~/.imago/scout.log 2>&1
 ```
+
+On macOS the same line goes in a small script fired by a LaunchAgent instead —
+see [proactivity.md](proactivity.md). Whichever fires it, **run it once by hand
+first**: a scheduled run cannot answer a permission prompt, so an ungranted tool
+is simply denied and the run reports nothing rather than failing loudly.
 
 Match the interval to how fast the thing being watched changes. Over-frequent
 scheduling is the most common way a useful agent becomes noise, and — because
