@@ -139,7 +139,7 @@ Worth an alias for an agent you use often:
 alias toby='claude --agent toby --add-dir ~/.imago'
 ```
 
-> **In the `-p` form the two flags are not optional.** Writes outside the working directory are denied by default, and under `-p` there is nobody to approve them — so without `--add-dir ~/.imago --allowedTools Write Edit` the agent runs, reports, and records nothing. The prompt also has to go through **stdin**, because both flags are variadic and would otherwise swallow a trailing prompt argument. This is the most common way an Imago agent silently accomplishes nothing — [full explanation](docs/proactivity.md).
+> **In the `-p` form the two flags are not optional.** `--add-dir` is what lets the agent reach its memory at all, `--allowedTools` is what grants the write, and under `-p` there is nobody to approve either — so without `--add-dir ~/.imago --allowedTools Write Edit` the agent runs, reports, and records nothing. Note what `--add-dir` is not: it grants reach, and [it does not fence a write in](docs/proactivity.md). The prompt also has to go through **stdin**, because both flags are variadic and would otherwise swallow a trailing prompt argument. This is the most common way an Imago agent silently accomplishes nothing — [full explanation](docs/proactivity.md).
 
 ### More than one: a fleet
 

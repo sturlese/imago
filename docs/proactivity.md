@@ -20,7 +20,7 @@ echo "Review this project's Claude Code setup." | \
 Every part of that line is load-bearing:
 
 - **`-p`** runs non-interactively and prints the result — required for anything scheduled.
-- **`--add-dir ~/.imago`** grants access to the memory directory. **Writes outside the working directory are denied by default**, so without this the agent cannot write its memory. This is the single most common way an Imago agent silently accomplishes nothing.
+- **`--add-dir ~/.imago`** grants access to the memory directory. Without it the agent cannot read or write its memory, and this is the single most common way an Imago agent silently accomplishes nothing. Note what it is *not*, below: it grants reach, and it does not fence a write in.
 - **`--allowedTools Write Edit`** grants the write itself. `--add-dir` opens the directory; this opens the tools. In interactive mode you would be prompted and could approve; under `-p` there is nobody to ask, so an ungranted write is simply denied.
 - **The prompt goes through stdin.** `--add-dir` and `--allowedTools` are variadic — a prompt written as a trailing argument gets swallowed as another value for whichever flag came last, and the command fails with "Input must be provided either through stdin or as a prompt argument".
 
@@ -57,6 +57,43 @@ This is unverified against a live run as of this writing — confirm with **Run 
 A locally-defined agent with local memory is scheduled locally, by either of the two schedulers above. If you want the cloud instead, the memory has to move somewhere both sides can reach — which is a different architecture, and a good reason to leave the fleet on one machine until you actually need otherwise.
 
 Imago wraps none of this deliberately: a scheduler wrapper here would date badly and would turn a convention into an orchestrator.
+
+## What a grant actually fences, and what it does not
+
+It is tempting to read `--add-dir` as a boundary — the agent may write *here* and
+nowhere else — and to build a safety argument on it. **It is not one**, and the
+difference matters most to exactly the people this document is for: an agent that
+runs with nobody watching.
+
+Measured on CLI v2.1.241, five ways, against a directory the run had not been
+granted:
+
+| | |
+|---|---|
+| `--allowedTools Write` (bare) | writes **anywhere on the filesystem**, whatever `--add-dir` says |
+| the same under `--permission-mode default` or `manual` | unchanged |
+| `--allowedTools "Write(<path>)"` | **inert** — the CLI prints a mismatch warning and the rule grants nothing |
+| `--allowedTools "Edit(<path>)"` alone | grants nothing either: no file is created, including at the path the rule names |
+| `--disallowedTools "Edit(<path>)"` | does **not** block a `Write` to that path |
+
+So there is no path-scoped write grant to reach for, and `--add-dir` is a read
+grant that a granted `Write` tool does not respect.
+
+**Two things do enforce, and they are the ones to build on:**
+
+- **A tool absent from the agent's `tools:` frontmatter.** It does not exist for
+  that session — this is [capability, not permission](design.md), and it is why
+  the `Never` line of `## Autonomy` should be short.
+- **An exact tool name in `deny` in `settings.json`.** The tool is removed from
+  the session's roster entirely: asked to use one, the agent reports that no such
+  tool exists rather than refusing.
+
+Anything narrower than that is a **refusal in the definition** — a rule the agent
+keeps, not a wall it cannot cross. That is a weaker guarantee, and it is worth
+having anyway; what is not worth having is an agent told it *cannot* do something
+it *can*. A false map is how an agent walks through a gap without noticing, so
+say which kind of limit you are writing: *"you can, and this is a rule you
+keep"* is a better instruction than a wall that is not there.
 
 ## Grant the narrowest thing that works
 
