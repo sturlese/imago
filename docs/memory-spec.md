@@ -91,6 +91,28 @@ check for a period before investigating anything else.
 
 Link between facts with `[[other-fact-slug]]`.
 
+### A fact that says something is broken has a shelf life
+
+A `lesson` recording that a tool, a source or a permission does not work is
+evidence about **the day it was written**, not a standing property of the world.
+Tools get fixed, access gets granted, an outage ends — and nothing tells the
+agent. So the fact quietly changes job: it stops being something the agent knows
+and becomes the reason it will not look again.
+
+That failure is worth naming because it is memory working against itself, and it
+is invisible from the inside — the agent behaves consistently with everything it
+holds, and is consistently wrong.
+
+**So a fact of this kind is a reason to check, never a reason to skip.** Put it
+in the agent's mandate in those terms: re-test before letting the record stop
+you, and when the re-test succeeds, correct or delete the fact in the same run.
+
+Usually the lesson survives its own premise, and that is the part worth
+preserving on the way through. *"Never file a post whose text ends mid-word"*
+stays true long after the reader that truncated it is repaired; only *"the
+reader truncates"* was ever perishable. Separate the two when you write the fact
+and the correction is a small edit rather than a deletion.
+
 ## Three files that are not facts
 
 `standing.md`, `brief.md` and `fleet` sit in the memory directory and are
