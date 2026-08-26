@@ -240,6 +240,20 @@ The same `SessionStart` hook is what puts the agent's index, its occupancy perce
 
 Treat it as a backstop under `deliverable`, not a replacement for it: a hook can check *that* something was written, never *what*, and it does nothing at all for the subagent form.
 
+### Turn it off for a conversation
+
+`Stop` fires at **every turn boundary**, not once per session. That is right for a `-p` run, where the turn and the run are the same thing. In an interactive session it is not: most turns are conversation — a question about what the agent already knows, a follow-up, a correction — and the definitions say plainly that those should answer and write nothing.
+
+Left alone, the hook argues with the agent for the length of the conversation, and each pass leaves `.imago-last-run-empty` for the next scheduled run to raise as a loss that never happened.
+
+So launch a conversation with `IMAGO_CHAT=1` and the hook stands down:
+
+```bash
+IMAGO_CHAT=1 claude --agent toby --add-dir ~/.imago
+```
+
+Nothing sets it for a scheduled run, so the enforcement that matters is untouched. Worth putting in whatever alias or launcher you use for talking to an agent, so it is not something to remember.
+
 ## What fires it, and what it says
 
 Two decisions, routinely collapsed into one:
