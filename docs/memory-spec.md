@@ -113,6 +113,44 @@ is what it no longer has to work out. Keeping all three outside the budget is th
 point: the budget exists to force curation of open questions, and a report
 overwritten every run, or a rule already settled, has nothing to curate.
 
+## Work products go in a subdirectory
+
+Some agents produce something larger than a brief and smaller than knowledge: a
+digest of what changed, a shortlist of candidates, a report the operator reads
+and then forgets. **Those belong in a subdirectory of the memory directory, not
+at its top level:**
+
+```
+~/.imago/<name>/
+├── MEMORY.md          the index
+├── <fact-slug>.md     facts
+├── standing.md
+├── brief.md
+└── digest/            a work product — one directory per kind
+    └── latest.md
+```
+
+This is a real distinction and not a way around the linter. **The top level is
+what the agent learned**, and it is what the budget and `tools/check` govern.
+**A subdirectory holds what a run made.** Neither the budget nor the checker
+should have an opinion about a digest, and the agent should not be curating one
+against a character limit.
+
+Put one at the top level and both mechanisms mistake it for a fact: `tools/check`
+reports missing frontmatter and index drift, and the `SessionStart` hook counts
+it against the 12,000 characters. Both scan the top level only — `glob("*.md")`
+and `listdir` — so a subdirectory is invisible to them by construction.
+
+Two rules keep the products honest, since nothing enforces them mechanically:
+
+- **Overwrite, do not accumulate.** A `digest/latest.md` replaced every run is a
+  product; a `digest/2026-08-24.md` alongside forty siblings is an archive, and
+  an archive is not read. The same argument as [the bounded memory](design.md).
+- **Date the heading.** A product a later run has to anchor against needs to say
+  when it was made — `# Digest — 2026-08-26` — or the next run cannot tell what
+  it has already covered. That heading is often the only watermark an incremental
+  agent has, and without it every run either repeats itself or guesses.
+
 ## Graduation — the other way out of memory
 
 Consolidation is not the only exit. A `lesson` that keeps proving itself should
