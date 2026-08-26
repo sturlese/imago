@@ -20,6 +20,8 @@ The split has a second benefit: the harness owns one tree and the agent owns the
 
 One directory per agent. Never shared between agents: two agents writing the same directory reintroduces every concurrency problem this design avoids, and their working state genuinely differs even when their knowledge overlaps.
 
+**One agent, several sessions, is a different case and it is allowed.** The rule above is about two *agents*; a scheduled run and a conversation with the same agent are one agent in two sessions, and they may both write. The shape is what makes that safe: **one fact per file, never appended to**, so two sessions filing different facts never touch the same bytes — run in parallel, both facts survive. `MEMORY.md` is the only shared mutable surface, and losing a race there costs an index line rather than a fact: the fact is intact on disk, the `SessionStart` hook reports it as unlisted at every run, and `tools/check` fails on it. That is why this needs no lock, and it is a narrower claim than no race at all — [proactivity.md](proactivity.md) has the measurements and the conversation that pairs with a schedule.
+
 Neither tree is ever inside a checkout of this template.
 
 An agent cannot write here unless the run grants it — `--add-dir ~/.imago --allowedTools Write Edit`, see [proactivity.md](proactivity.md). A memory that never gets written is the most common failure of an otherwise correct agent.

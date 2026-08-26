@@ -4,13 +4,15 @@ An agent that only runs when you summon it barely needs memory — you would rem
 
 Imago does not ship a scheduler. It provides the **contract an agent must satisfy before it is safe to schedule**, because unattended agents fail differently from interactive ones — and the launch command, which is less obvious than it looks.
 
-## Three ways to run an agent, and only one of them schedules
+## Four ways to run an agent, and only one of them schedules
 
 **As a subagent.** Open Claude Code and ask the session to use the agent by name. The main session dispatches it, the agent returns its result, and the session carries on — the orchestrator stays in charge and the agent is an errand it ran. Convenient, but there is no way to invoke this from cron, and **session hooks do not fire for a subagent**, so nothing mechanical can verify it wrote anything.
 
 **As an interactive session.** `claude --agent <name> --add-dir ~/.imago` starts an ordinary interactive session that *is* the agent: you talk to Toby, he answers as Toby, and you can go back and forth for as long as you like. This is the mode that feels like working with a colleague rather than dispatching a function, and it is the best way to develop a personality — you find out immediately whether the refusals hold under pressure. Writes are approved through the normal permission prompt, which is fine when you are sitting there.
 
 **As a non-interactive session.** The same thing with `-p`: one shot, prints, exits. This is the form that schedules, and — like the interactive form — the one where the `Stop` hook fires, which is what makes mechanical enforcement of the memory write possible at all ([design.md](design.md)).
+
+**As a conversation that persists.** The interactive form again, resumed instead of restarted, so this afternoon picks up where this morning left off. This is the mode that pairs with a schedule: the run does the work, and you argue with the agent about it later without re-explaining the morning. [It has its own section below](#a-conversation-that-persists), because one flag on the resume decides whether the agent still reads its memory.
 
 ```bash
 echo "Review this project's Claude Code setup." | \
@@ -143,6 +145,112 @@ having anyway; what is not worth having is an agent told it *cannot* do somethin
 it *can*. A false map is how an agent walks through a gap without noticing, so
 say which kind of limit you are writing: *"you can, and this is a rule you
 keep"* is a better instruction than a wall that is not there.
+
+## A conversation that persists
+
+A scheduled agent and a conversation with that agent are the same agent, and they
+want to be the same *thread*. You read the brief at nine, and at four you want to
+push back on it — without re-establishing who the agent is, what it looked at, or
+what you already told it this morning.
+
+Claude Code resumes a session by id, so the whole mechanism is choosing one:
+
+```bash
+SID=$(python3 -c "import uuid,datetime;print(uuid.uuid5(uuid.NAMESPACE_DNS,'toby:'+datetime.date.today().isoformat()))")
+
+IMAGO_CHAT=1 claude --agent toby --add-dir ~/.imago --session-id "$SID"   # first time today
+IMAGO_CHAT=1 claude --agent toby --add-dir ~/.imago --resume     "$SID"   # every time after
+```
+
+**Derive the id, do not store it.** A UUIDv5 of `<agent>:<date>` is the same
+string every time you compute it, so there is no state file to keep in sync and
+nothing to clean up — yesterday's conversation is simply never reopened. Start
+the session if its transcript does not exist yet, resume if it does.
+
+What survives a resume is worth being exact about:
+
+| | |
+|---|---|
+| the conversation | **yes** |
+| the agent's identity | **yes** — the transcript records the agent it was started as |
+| the definition | **re-read from disk**, so an edit lands on your next turn |
+| the `SessionStart` hook | **only if you name the agent again** — see below |
+
+### Repeat `--agent` on the resume, or the memory injection stops silently
+
+The hook fires on a resume the same as on a start, and the injection is *fresh*:
+a fact filed after the session began is in the index the agent reads on the next
+resume. That is what makes this mode worth having — the conversation persists,
+but it is not frozen in the memory it started with.
+
+It holds on one condition. The hook decides what to inject from the `agent_type`
+in its payload, and **that field is populated by the `--agent` flag, not by the
+transcript**. Resume without it and the hook exits at its first line, having no
+agent to inject for.
+
+The failure is quiet, which is what makes it worth a section. Resumed without
+`--agent`, the session is still the agent by every visible sign: the identity is
+in the transcript, the definition is re-read, the voice and the refusals are
+intact. Only the injection is gone. The agent answers from whatever index it was
+handed hours or days ago, and neither of you is told. Measured both ways: with
+the flag, a fact written mid-session came back on the next turn; without it, the
+same fact was invisible.
+
+So both lines carry `--agent`, and the one that resumes is not the shorter one.
+
+**Cut the conversation daily anyway.** Not for memory freshness — that is handled
+— but because every resume injects the whole index again into a transcript that
+already holds every previous injection. A conversation carried for a week pays
+for its memory once per turn taken, and the date-derived id above cuts it for you
+without a decision to remember.
+
+### Both the run and the conversation may write
+
+The natural worry is that a scheduled run and a conversation are two writers on
+one memory directory, and that [the one-writer rule](memory-spec.md) forbids it.
+It does not, and the reason is the shape of the memory rather than luck.
+
+**One fact per file, never appended to.** A conversation filing
+`materiality-threshold.md` and a run filing `pipeline-goes-quiet-in-august.md`
+never touch the same bytes. Two sessions of one agent, started simultaneously and
+each told to file a fact and rebuild the index, were run four times: both facts
+landed intact every time, and the index listed both every time. Nothing was lost
+that a lock would have saved.
+
+That is the claim, and it is narrower than "there is no race". `MEMORY.md` is a
+shared mutable surface and it is read-modify-written, so two writes that overlap
+closely enough will drop a line — forced deliberately, they do. It is rare in
+practice because an agent rebuilds the index as its last act, from a listing it
+takes moments before, so the window is small. The point is not that the window is
+closed; it is **what a lost race costs here**. Nothing that was learned is gone —
+the fact is a whole file on disk, correct and complete. What is lost is a pointer
+to it, and the pointer is derivable from the thing it points at.
+
+Which is the difference from a shape where the memory *is* one file. Hermes Agent
+allows the same two writers over a single `MEMORY.md` that every writer
+read-modify-writes, and needs a lock file, a reload under the lock, and drift
+detection that aborts a write which would discard content it cannot round-trip.
+It needs all of that because there a lost race costs **knowledge**. Here it costs
+an index line, so the same protection is not worth the same machinery.
+
+**What is not automatic is the repair, and it is honest to say so.** The
+`SessionStart` hook reports facts on disk that are missing from the index, every
+run, so the drift is surfaced and cannot go unnoticed indefinitely. It is not
+corrected for you: an agent given that warning and a turn to use it did not
+rebuild the index unprompted — not on a greeting, and not on a run about its own
+memory. Treat the warning as something you or the agent acts on, not as a repair
+that has already happened. Rebuilding is one pass over the directory, and
+`tools/check` fails on the drift.
+
+**So a specialist should record what you teach it, in the conversation itself.**
+This is most of why talking to one is worth doing: a correction that cannot be
+written down dies with the session, and you will keep making it. Tell an agent
+that a class of finding is not worth reporting and it should file that as a
+`lesson` with a threshold, not merely agree with you.
+
+One thing a conversation should not write, and it is a rule rather than a
+capability: **the brief**. That is a run's report of a run. A chat overwriting it
+tells the chief that work happened when what happened was talking.
 
 ## Grant the narrowest thing that works
 
