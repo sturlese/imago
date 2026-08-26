@@ -99,10 +99,19 @@ with *more* permission than the parent has, which is precisely the escalation th
 harness refuses between sessions. A rule in a prompt is not a substitute for not
 having the capability.
 
-So the chief's example ships with no `Bash`, and there is no dispatch command in
-this document. If you want one anyway, that is your call: grant `Bash`, scope it
-in your permissions to the `claude` command rather than to a shell, and know that
-you have opened the door above.
+So the chief's example ships with no `Bash`, and there is no command in this
+document that starts a session. If you want one anyway, that is your call: grant
+`Bash`, scope it in your permissions to the `claude` command rather than to a
+shell, and know that you have opened the door above.
+
+**Running a specialist as a subagent is a different thing, and it is safe.** The
+escalation above comes from starting a *session*: a shell can hand a child more
+than the parent holds. A subagent runs inside the chief's own turn and cannot
+exceed the chief's permissions — so it is not a way to start anything, it is a
+way to ask a specialist a question and get its own definition, refusals and
+memory answering. The example chief carries the tool for it, and keeps every
+dispatch read-only: a subagent gets no `Stop` event, so nothing could verify a
+memory write it claimed to make.
 
 **Events are the real gap.** "Every time a recording lands in this folder,
 transcribe it and draft the posts" is the shape most of the useful proactivity in
