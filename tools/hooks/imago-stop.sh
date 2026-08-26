@@ -10,6 +10,14 @@
 #   - the session runs as an agent (`agent_type` in the hook payload)
 #   - that agent has a memory directory under ~/.imago
 #   - nothing in that directory changed during the session
+#   - IMAGO_CHAT is not set (see below)
+#
+# `IMAGO_CHAT=1` marks a session as a conversation rather than a run, and the
+# hook stands down. The write it enforces belongs to the deliverable: a turn that
+# answers a question and records nothing is correct behaviour, and Stop fires at
+# every turn boundary, so without this the hook argues with the agent for the
+# length of the conversation — and leaves `.imago-last-run-empty` behind for the
+# next real run to raise as a loss that never happened.
 #
 # It blocks at most once. On the second pass it lets the session end — but it
 # writes `.imago-last-run-empty` first, and imago-session-start.sh raises that at
@@ -26,6 +34,11 @@ input=$(cat 2>/dev/null || true)
 agent=$(printf '%s' "$input" | python3 -c \
   'import json,sys;print((json.load(sys.stdin).get("agent_type") or "").strip())' 2>/dev/null) || exit 0
 [ -n "$agent" ] || exit 0
+
+# A conversation is not a run: the operator is here, the deliverable is the
+# answer, and Stop fires at every turn boundary. Whoever launches a chat sets
+# this; nothing sets it for a scheduled run.
+[ -n "${IMAGO_CHAT:-}" ] && exit 0
 
 memory="${IMAGO_MEMORY:-$HOME/.imago}/$agent"
 [ -d "$memory" ] || exit 0   # not an Imago agent — nothing to enforce
